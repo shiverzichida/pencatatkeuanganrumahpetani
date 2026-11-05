@@ -2,7 +2,7 @@
 
 import React from "react";
 import { formatRupiah } from "@/lib/utils";
-import { Wallet, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Wallet, TrendingUp, AlertTriangle } from "lucide-react";
 import { BudgetCategory, ExpenseItem } from "@/types/expense";
 
 interface BudgetSummaryProps {
@@ -11,17 +11,13 @@ interface BudgetSummaryProps {
 }
 
 export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets }) => {
-  // Hitung total pengeluaran aktual
   const totalSpent = expenses.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
-  
-  // Total Target Budget
   const totalBudget = budgets.reduce((sum, b) => sum + b.budget, 0);
   const totalPessimistic = budgets.reduce((sum, b) => sum + b.pessimistic, 0);
 
   const remainingBudget = totalBudget - totalSpent;
   const percentageSpent = Math.min(Math.round((totalSpent / totalBudget) * 100), 100);
 
-  // Pengeluaran per kategori
   const spendingByCategory = budgets.map((b) => {
     const spent = expenses
       .filter((e) => e.category === b.category)
@@ -39,101 +35,113 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets 
 
   return (
     <div className="space-y-4">
-      {/* 3 Main Highlight Cards */}
+      {/* 3 Main Highlight Cards - Dark Glassmorphism */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Total Terpakai */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Terpakai</p>
-            <h3 className="text-xl font-bold text-slate-900 mt-1">{formatRupiah(totalSpent)}</h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {percentageSpent}% dari Target Standar
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
-            <TrendingUp className="w-5 h-5" />
+        <div className="glass-panel p-4 rounded-2xl relative overflow-hidden group">
+          <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Terpakai</p>
+              <h3 className="text-xl sm:text-2xl font-black text-white mt-1 tracking-tight">{formatRupiah(totalSpent)}</h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                <span className="text-emerald-400 font-bold">{percentageSpent}%</span> dari Target Standar
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="w-5 h-5" />
+            </div>
           </div>
         </div>
 
         {/* Target Budget Standar */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Target Budget Standar</p>
-            <h3 className="text-xl font-bold text-slate-900 mt-1">{formatRupiah(totalBudget)}</h3>
-            <p className="text-[11px] text-emerald-600 font-medium mt-0.5">
-              Sisa: {formatRupiah(remainingBudget)}
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
-            <Wallet className="w-5 h-5" />
+        <div className="glass-panel p-4 rounded-2xl relative overflow-hidden group">
+          <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Target Budget Standar</p>
+              <h3 className="text-xl sm:text-2xl font-black text-white mt-1 tracking-tight">{formatRupiah(totalBudget)}</h3>
+              <p className="text-[11px] text-emerald-400 font-semibold mt-0.5 truncate">
+                Sisa: {formatRupiah(remainingBudget)}
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center flex-shrink-0">
+              <Wallet className="w-5 h-5" />
+            </div>
           </div>
         </div>
 
         {/* Pagu Pesimis (+10%) */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pagu Pesimis (+10% Bahan)</p>
-            <h3 className="text-xl font-bold text-slate-900 mt-1">{formatRupiah(totalPessimistic)}</h3>
-            <p className="text-[11px] text-amber-600 font-medium mt-0.5">
-              Batas Aman Risiko Material
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-5 h-5" />
+        <div className="glass-panel p-4 rounded-2xl relative overflow-hidden group">
+          <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all pointer-events-none" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Batas Pesimis (+10%)</p>
+              <h3 className="text-xl sm:text-2xl font-black text-white mt-1 tracking-tight">{formatRupiah(totalPessimistic)}</h3>
+              <p className="text-[11px] text-amber-400/90 font-medium mt-0.5">
+                Batas Aman Inflasi Bahan
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Progress Bar Keseluruhan */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between text-xs font-medium text-slate-600 mb-2">
-          <span>Realisasi Anggaran Total</span>
-          <span className="font-bold text-slate-900">{percentageSpent}%</span>
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl">
+        <div className="flex items-center justify-between text-xs font-medium text-slate-300 mb-2">
+          <span className="flex items-center gap-1.5 font-semibold">
+            Realisasi Anggaran Total
+          </span>
+          <span className="font-extrabold text-white text-sm">{percentageSpent}%</span>
         </div>
-        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+        <div className="w-full bg-slate-800/80 rounded-full h-3 overflow-hidden p-0.5 border border-white/5">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
               percentageSpent > 90
-                ? "bg-rose-500"
+                ? "bg-gradient-to-r from-rose-500 to-rose-400"
                 : percentageSpent > 70
-                ? "bg-amber-500"
-                : "bg-emerald-500"
+                ? "bg-gradient-to-r from-amber-500 to-amber-400"
+                : "bg-gradient-to-r from-emerald-500 to-teal-400"
             }`}
             style={{ width: `${percentageSpent}%` }}
           />
         </div>
-        <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2">
+        <div className="flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 mt-2.5">
           <span>0%</span>
-          <span>Target Standar: {formatRupiah(totalBudget)}</span>
-          <span>Batas Pesimis: {formatRupiah(totalPessimistic)}</span>
+          <span className="text-slate-300">Target: {formatRupiah(totalBudget)}</span>
+          <span className="text-amber-400">Pesimis: {formatRupiah(totalPessimistic)}</span>
         </div>
       </div>
 
       {/* Breakdown per Kategori */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
-          Rincian Budget per Kategori Pekerjaan
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl">
+        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center justify-between">
+          <span>Rincian Budget per Kategori</span>
+          <span className="text-[10px] text-slate-500 font-normal">Realisasi vs Target</span>
         </h4>
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {spendingByCategory.map((cat) => (
-            <div key={cat.category} className="space-y-1">
+            <div key={cat.category} className="space-y-1.5 group">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-800 truncate pr-2">
+                <span className="font-medium text-slate-200 truncate pr-2 group-hover:text-white transition-colors">
                   {cat.category}
                 </span>
-                <span className="text-slate-500 flex-shrink-0">
-                  <span className="font-bold text-slate-900">{formatRupiah(cat.spent)}</span> /{" "}
-                  {formatRupiah(cat.budget)}
+                <span className="text-slate-400 flex-shrink-0 text-right">
+                  <span className="font-bold text-white">{formatRupiah(cat.spent)}</span>
+                  <span className="text-slate-500 text-[11px]"> / {formatRupiah(cat.budget)}</span>
                 </span>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
+              <div className="w-full bg-slate-800/70 rounded-full h-2 overflow-hidden border border-white/5">
                 <div
                   className={`h-full rounded-full transition-all duration-300 ${
                     cat.isOver
                       ? "bg-rose-500"
                       : cat.percent > 80
                       ? "bg-amber-500"
-                      : "bg-indigo-600"
+                      : "bg-indigo-500"
                   }`}
                   style={{ width: `${Math.min(cat.percent, 100)}%` }}
                 />
@@ -141,7 +149,7 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets 
               <div className="flex items-center justify-between text-[10px] text-slate-400">
                 <span>{cat.percent}% terpakai</span>
                 {cat.isOver ? (
-                  <span className="text-rose-600 font-semibold flex items-center gap-0.5">
+                  <span className="text-rose-400 font-semibold flex items-center gap-0.5">
                     <AlertTriangle className="w-3 h-3" /> Melebihi budget ({formatRupiah(cat.spent - cat.budget)})
                   </span>
                 ) : (

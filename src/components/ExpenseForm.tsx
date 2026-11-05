@@ -20,7 +20,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   isLoading,
 }) => {
   const [date, setDate] = useState<string>("");
-  const [category, setCategory] = useState<string>(CATEGORIES[1]); // Default Material Struktur Bawah
+  const [category, setCategory] = useState<string>(CATEGORIES[1]);
   const [itemName, setItemName] = useState<string>("");
   const [qty, setQty] = useState<number>(1);
   const [unit, setUnit] = useState<string>("btg");
@@ -31,7 +31,6 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<boolean>(false);
 
-  // Sync state when editingExpense changes
   useEffect(() => {
     if (editingExpense) {
       setDate(editingExpense.date || "");
@@ -56,12 +55,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
   const calculatedTotal = qty * unitPrice;
 
-  // Handle image upload from camera / gallery to Base64
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("Ukuran foto maksimal 2MB agar penyimpanan hemat dan cepat.");
+        alert("Ukuran foto maksimal 2MB agar hemat penyimpanan.");
         return;
       }
       const reader = new FileReader();
@@ -77,12 +75,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemName.trim()) {
-      alert("Mohon isi nama barang atau uraian pengeluaran!");
+      alert("Mohon isi nama barang atau uraian transaksi!");
       return;
     }
 
     if (editingExpense) {
-      // Update Mode
       await onUpdateExpense({
         ...editingExpense,
         date,
@@ -98,7 +95,6 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       });
       onCancelEdit();
     } else {
-      // Add Mode
       await onAddExpense({
         date,
         category,
@@ -111,7 +107,6 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
         notes,
         receiptUrl,
       });
-      // Reset form
       setItemName("");
       setVendor("");
       setNotes("");
@@ -124,20 +119,21 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-xl transition-all">
+      {/* Form Header */}
       <div
-        className={`p-5 text-white flex items-center justify-between transition-colors ${
+        className={`p-4 sm:p-5 flex items-center justify-between border-b transition-colors ${
           editingExpense
-            ? "bg-gradient-to-r from-amber-700 via-amber-800 to-slate-900"
-            : "bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950"
+            ? "bg-amber-500/10 border-amber-500/20 text-amber-200"
+            : "bg-emerald-500/10 border-emerald-500/20 text-emerald-200"
         }`}
       >
         <div>
-          <h2 className="text-lg font-bold flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold flex items-center gap-2 text-white">
             {editingExpense ? (
               <>
-                <Edit3 className="w-5 h-5 text-amber-300" />
-                Edit Transaksi Pengeluaran
+                <Edit3 className="w-5 h-5 text-amber-400" />
+                Edit Transaksi
               </>
             ) : (
               <>
@@ -146,10 +142,10 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               </>
             )}
           </h2>
-          <p className="text-xs text-slate-300 mt-0.5">
+          <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
             {editingExpense
-              ? "Perubahan akan otomatis disinkronkan ke Spreadsheet"
-              : "Otomatis tersimpan & terhubung ke Google Spreadsheet"}
+              ? "Ubah data lalu simpan ke Google Sheets"
+              : "Langsung tersimpan & tersinkronisasi"}
           </p>
         </div>
 
@@ -158,47 +154,47 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             <button
               type="button"
               onClick={onCancelEdit}
-              className="text-xs bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1.5 rounded-xl flex items-center gap-1 font-semibold transition-colors cursor-pointer"
             >
-              <X className="w-3.5 h-3.5" /> Batal Edit
+              <X className="w-3.5 h-3.5" /> Batal
             </button>
           )}
 
           {successMsg && (
-            <span className="bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1 rounded-full border border-emerald-500/40 flex items-center gap-1 font-medium animate-pulse">
+            <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/40 flex items-center gap-1 font-medium animate-pulse">
               <Check className="w-3.5 h-3.5" /> Berhasil!
             </span>
           )}
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-5 space-y-4">
+      <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-3.5">
         {/* Row 1: Tanggal & Kategori */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-slate-400" /> Tanggal Transaksi
+            <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-emerald-400" /> Tanggal Transaksi
             </label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-              className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-slate-50/50"
+              className="w-full text-xs sm:text-sm glass-input rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
-              <FileText className="w-3.5 h-3.5 text-slate-400" /> Kategori Pos Biaya
+            <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+              <FileText className="w-3 h-3 text-emerald-400" /> Kategori Pos Biaya
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-slate-50/50"
+              className="w-full text-xs sm:text-sm glass-input rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white bg-slate-900"
             >
               {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
+                <option key={cat} value={cat} className="bg-slate-900 text-white">
                   {cat}
                 </option>
               ))}
@@ -208,23 +204,23 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
         {/* Row 2: Uraian Barang */}
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1">
-            Uraian Barang / Item Pengeluaran <span className="text-rose-500">*</span>
+          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+            Uraian Barang / Item Pengeluaran <span className="text-rose-400">*</span>
           </label>
           <input
             type="text"
-            placeholder="Contoh: Semen Gresik 50kg, Besi 13 Ulir SMTY, Pasir 2 Pick Up..."
+            placeholder="Contoh: Semen 50kg, Besi 13 Ulir, Pasir 2 Pick Up..."
             value={itemName}
             onChange={(e) => setItemName(e.target.value)}
             required
-            className="w-full text-sm border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white placeholder:text-slate-400 font-medium"
+            className="w-full text-xs sm:text-sm glass-input rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-slate-500 font-medium"
           />
         </div>
 
         {/* Row 3: Qty, Satuan, Harga Satuan, Total */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 glass-panel-subtle p-3 rounded-xl border border-white/5">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Jumlah (Qty)</label>
+            <label className="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">Jumlah (Qty)</label>
             <input
               type="number"
               min="0.1"
@@ -232,23 +228,23 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               value={qty}
               onChange={(e) => setQty(parseFloat(e.target.value) || 0)}
               required
-              className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white text-center font-bold"
+              className="w-full text-xs sm:text-sm glass-input rounded-lg px-2 py-1.5 focus:outline-none text-center font-bold text-white"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Satuan</label>
+            <label className="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">Satuan</label>
             <input
               type="text"
-              placeholder="sak / btg / pick up"
+              placeholder="sak / btg"
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white text-center"
+              className="w-full text-xs sm:text-sm glass-input rounded-lg px-2 py-1.5 focus:outline-none text-center text-white"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Harga Satuan (Rp)</label>
+            <label className="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">Harga Satuan (Rp)</label>
             <input
               type="number"
               min="0"
@@ -256,49 +252,49 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               value={unitPrice}
               onChange={(e) => setUnitPrice(parseInt(e.target.value) || 0)}
               required
-              className="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white font-semibold text-right"
+              className="w-full text-xs sm:text-sm glass-input rounded-lg px-2 py-1.5 focus:outline-none font-semibold text-right text-emerald-400"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Total Biaya (Rp)</label>
-            <div className="text-sm font-bold text-slate-900 py-1.5 px-2 bg-emerald-50 border border-emerald-200 rounded-lg text-right truncate">
+            <label className="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">Total (Rp)</label>
+            <div className="text-xs sm:text-sm font-extrabold text-white py-1.5 px-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-right truncate">
               {new Intl.NumberFormat("id-ID").format(calculatedTotal)}
             </div>
           </div>
         </div>
 
         {/* Row 4: Toko & Catatan */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
-              <Store className="w-3.5 h-3.5 text-slate-400" /> Toko Bangunan / Penerima
+            <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+              <Store className="w-3 h-3 text-slate-400" /> Toko Bangunan / Penerima
             </label>
             <input
               type="text"
-              placeholder="Contoh: Toko Bangunan Mitra, Pangkalan Pasir, Kang Nono..."
+              placeholder="Contoh: Toko Bangunan Mitra..."
               value={vendor}
               onChange={(e) => setVendor(e.target.value)}
-              className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+              className="w-full text-xs sm:text-sm glass-input rounded-xl px-3 py-2 focus:outline-none placeholder:text-slate-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Keterangan / Catatan Tambahan</label>
+            <label className="block text-[11px] font-semibold text-slate-300 mb-1">Keterangan / Catatan</label>
             <input
               type="text"
-              placeholder="Contoh: Pembayaran termin 1, nota dititip tukang..."
+              placeholder="Contoh: Pembayaran termin 1..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+              className="w-full text-xs sm:text-sm glass-input rounded-xl px-3 py-2 focus:outline-none placeholder:text-slate-500"
             />
           </div>
         </div>
 
-        {/* Row 5: Upload Foto Bukti Nota */}
-        <div className="border-t border-slate-100 pt-3">
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
-            <Image className="w-3.5 h-3.5 text-slate-500" /> Foto Nota / Kwitansi (Opsional)
+        {/* Row 5: Upload Foto Nota */}
+        <div className="border-t border-white/5 pt-3">
+          <label className="block text-[11px] font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+            <Image className="w-3.5 h-3.5 text-slate-400" /> Foto Nota / Kwitansi (Opsional)
           </label>
           <div className="flex items-center gap-3">
             <input
@@ -306,10 +302,10 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               accept="image/*"
               capture="environment"
               onChange={handleImageChange}
-              className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200 cursor-pointer"
+              className="block w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-emerald-400 hover:file:bg-slate-700 cursor-pointer"
             />
             {previewImage && (
-              <div className="relative group w-10 h-10 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+              <div className="relative group w-10 h-10 rounded-lg overflow-hidden border border-white/10 flex-shrink-0">
                 <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
                 <button
                   type="button"
@@ -317,7 +313,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                     setPreviewImage(null);
                     setReceiptUrl("");
                   }}
-                  className="absolute inset-0 bg-black/60 text-white text-[10px] opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                  className="absolute inset-0 bg-black/75 text-rose-400 text-[10px] opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
                 >
                   Hapus
                 </button>
@@ -326,13 +322,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           </div>
         </div>
 
-        {/* Submit & Cancel Buttons */}
+        {/* Buttons */}
         <div className="flex gap-2.5 pt-1">
           {editingExpense && (
             <button
               type="button"
               onClick={onCancelEdit}
-              className="w-1/3 py-3 px-4 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold text-sm transition-all cursor-pointer"
+              className="w-1/3 py-2.5 sm:py-3 px-3 rounded-xl border border-white/10 text-slate-300 hover:bg-slate-800 font-semibold text-xs sm:text-sm transition-all cursor-pointer"
             >
               Batal
             </button>
@@ -341,22 +337,22 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className={`flex-1 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer ${
+            className={`flex-1 text-slate-950 font-bold py-2.5 sm:py-3 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-50 cursor-pointer ${
               editingExpense
-                ? "bg-amber-600 hover:bg-amber-500"
-                : "bg-slate-900 hover:bg-slate-800"
+                ? "bg-gradient-to-r from-amber-400 to-amber-500 hover:brightness-110 text-slate-950"
+                : "bg-gradient-to-r from-emerald-400 to-teal-400 hover:brightness-110 glow-emerald"
             }`}
           >
             {isLoading ? (
-              <span>Menyimpan ke Google Spreadsheet...</span>
+              <span className="text-slate-900">Menyimpan ke Spreadsheet...</span>
             ) : editingExpense ? (
               <>
-                <Check className="w-4 h-4 text-white" />
+                <Check className="w-4 h-4 text-slate-950" />
                 Simpan Perubahan
               </>
             ) : (
               <>
-                <Receipt className="w-4 h-4 text-emerald-400" />
+                <Receipt className="w-4 h-4 text-slate-950" />
                 Simpan Pengeluaran
               </>
             )}

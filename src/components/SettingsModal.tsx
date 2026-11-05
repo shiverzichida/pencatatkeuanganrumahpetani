@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Settings, Save, CheckCircle2, Copy, ExternalLink, HelpCircle } from "lucide-react";
+import { Settings, Save, HelpCircle } from "lucide-react";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -17,7 +17,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSaveUrl,
 }) => {
   const [urlInput, setUrlInput] = useState(scriptUrl);
-  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
@@ -27,21 +26,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 border border-slate-200 overflow-y-auto max-h-[92vh]">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="glass-panel rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 border border-white/10 overflow-y-auto max-h-[92vh]">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900">Koneksi Google Spreadsheet</h3>
-              <p className="text-xs text-slate-500">Sinkronisasi data 2 arah secara gratis & real-time</p>
+              <h3 className="font-bold text-sm sm:text-base text-white">Koneksi Google Spreadsheet</h3>
+              <p className="text-[11px] text-slate-400">Sinkronisasi data 2 arah secara gratis & real-time</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 text-sm font-semibold p-1"
+            className="text-slate-400 hover:text-white text-sm font-semibold p-1 cursor-pointer"
           >
             ✕
           </button>
@@ -49,7 +48,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Input URL */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-bold text-slate-700">
+          <label className="block text-xs font-semibold text-slate-300">
             Google Apps Script Web App URL:
           </label>
           <input
@@ -57,48 +56,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             placeholder="https://script.google.com/macros/s/.../exec"
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            className="w-full text-xs font-mono border border-slate-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900 bg-slate-50/50"
+            className="w-full text-xs font-mono glass-input rounded-xl px-3.5 py-2.5 focus:outline-none placeholder:text-slate-600"
           />
           <p className="text-[11px] text-slate-400">
-            Jika kosong, aplikasi akan otomatis menggunakan mode penyimpanan lokal di browser (LocalStorage).
+            Bila dikosongkan, data otomatis disimpan di browser Anda (LocalStorage).
           </p>
         </div>
 
-        {/* Panduan 3 Langkah Singkat */}
-        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2.5 text-xs text-slate-600">
-          <div className="flex items-center gap-1.5 font-bold text-slate-800">
-            <HelpCircle className="w-4 h-4 text-indigo-600" />
-            Cara Buat Web App URL di Google Spreadsheet (2 Menit):
+        {/* Panduan 3 Langkah */}
+        <div className="glass-panel-subtle rounded-2xl p-4 border border-white/5 space-y-2 text-xs text-slate-300">
+          <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+            <HelpCircle className="w-4 h-4" />
+            Cara Pasang di Google Spreadsheet (2 Menit):
           </div>
-          <ol className="list-decimal list-inside space-y-1.5 text-[11px] leading-relaxed">
+          <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-slate-400 leading-relaxed">
             <li>
-              Buka Google Sheets Anda &gt; menu <b>Ekstensi &gt; Apps Script</b>.
+              Buka Google Sheets Anda &gt; menu <b className="text-slate-200">Ekstensi &gt; Apps Script</b>.
             </li>
             <li>
-              Buka file <code>google-apps-script.js</code> di folder proyek ini, <b>Copy</b> kodenya dan <b>Paste</b> ke Apps Script.
+              Buka file <code className="text-emerald-300">google-apps-script.js</code> di folder proyek ini, <b className="text-slate-200">Copy</b> dan <b className="text-slate-200">Paste</b> ke Apps Script.
             </li>
             <li>
-              Klik tombol <b>Terapkan (Deploy) &gt; Penerapan baru (New deployment)</b>.
+              Klik tombol <b className="text-slate-200">Terapkan (Deploy) &gt; Penerapan baru (New deployment)</b>.
             </li>
             <li>
-              Pilih tipe: <b>Aplikasi Web (Web App)</b>, pada <i>Who has access</i> pilih <b>Anyone (Siapa saja)</b>.
+              Pilih tipe <b className="text-slate-200">Aplikasi Web (Web App)</b>, pada akses pilih <b className="text-emerald-400">Siapa saja (Anyone)</b>.
             </li>
             <li>
-              Klik <b>Deploy</b>, lalu copy link Web App URL yang berakhiran <code>/exec</code> dan tempelkan di kotak atas!
+              Klik <b className="text-slate-200">Deploy</b>, lalu salin link URL yang berakhiran <code className="text-emerald-300">/exec</code> ke kolom di atas.
             </li>
           </ol>
         </div>
 
-        <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/10">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
           >
             Batal
           </button>
           <button
             onClick={handleSave}
-            className="px-5 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+            className="px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-emerald-400 to-teal-400 hover:brightness-110 text-slate-950 rounded-xl shadow-lg transition-all flex items-center gap-1.5 cursor-pointer glow-emerald"
           >
             <Save className="w-3.5 h-3.5" />
             Simpan URL

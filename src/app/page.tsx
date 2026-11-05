@@ -6,7 +6,7 @@ import { BudgetSummary } from "@/components/BudgetSummary";
 import { ExpenseList } from "@/components/ExpenseList";
 import { SettingsModal } from "@/components/SettingsModal";
 import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES } from "@/types/expense";
-import { Home, RefreshCw, Settings, Database, FileSpreadsheet } from "lucide-react";
+import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered } from "lucide-react";
 
 export default function HomePage() {
   const [expenses, setExpenses] = useState<ExpenseItem[]>(INITIAL_EXPENSES);
@@ -16,6 +16,9 @@ export default function HomePage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<"synced" | "local" | "syncing" | "error">("local");
+
+  // Mobile Tab state: 'dashboard' | 'form' | 'list'
+  const [mobileTab, setMobileTab] = useState<"dashboard" | "form" | "list">("dashboard");
 
   // Load initial settings & local data
   useEffect(() => {
@@ -36,7 +39,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // Fetch data from Google Apps Script Web App
   const fetchSpreadsheetData = async (url: string) => {
     if (!url) return;
     setIsLoading(true);
@@ -62,7 +64,6 @@ export default function HomePage() {
     }
   };
 
-  // Add Expense
   const handleAddExpense = async (newExpData: Omit<ExpenseItem, "id" | "createdAt">) => {
     const newId = "EXP-" + new Date().getTime();
     const newExpense: ExpenseItem = {
@@ -71,12 +72,10 @@ export default function HomePage() {
       createdAt: new Date().toISOString(),
     };
 
-    // Update state & local storage immediately (optimistic UI)
     const updated = [newExpense, ...expenses];
     setExpenses(updated);
     localStorage.setItem("local_expenses", JSON.stringify(updated));
 
-    // Kirim ke Google Spreadsheet jika ada URL
     if (scriptUrl) {
       setIsLoading(true);
       try {
@@ -100,7 +99,6 @@ export default function HomePage() {
     }
   };
 
-  // Update Expense (Edit)
   const handleUpdateExpense = async (updatedExp: ExpenseItem) => {
     const updatedList = expenses.map((item) =>
       item.id === updatedExp.id ? updatedExp : item
@@ -131,7 +129,6 @@ export default function HomePage() {
     }
   };
 
-  // Delete Expense
   const handleDeleteExpense = async (id: string) => {
     const updated = expenses.filter((e) => e.id !== id);
     setExpenses(updated);
@@ -174,22 +171,27 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 pb-16 font-sans">
-      {/* Top Header */}
-      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md bg-slate-900/90 text-white">
-        <div className="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-emerald-500/20">
+    <div className="min-h-screen bg-[#070b14] text-slate-100 pb-24 md:pb-16 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
+      {/* Background Radial Glow */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="fixed top-1/3 right-0 w-[400px] h-[300px] bg-indigo-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+
+      {/* Top Header Glass */}
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#090d16]/75 border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">
               <Home className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-base font-extrabold tracking-tight">
-                Pencatatan Bangun Rumah
+              <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-white flex items-center gap-1.5">
+                Bangun Rumah
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  Nahel
+                </span>
               </h1>
-              <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                <span>Nahel Al Fath Ichida</span>
-                <span>•</span>
-                <span className="text-emerald-400 font-medium">Jl. Petani Gg. Ibrahim</span>
+              <p className="text-[10px] sm:text-[11px] text-slate-400">
+                Jl. Petani Gg. Ibrahim, Pontianak
               </p>
             </div>
           </div>
@@ -198,17 +200,17 @@ export default function HomePage() {
             {/* Status Sync Badge */}
             <div
               onClick={() => setIsSettingsOpen(true)}
-              className="cursor-pointer hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800 border border-slate-700 hover:bg-slate-700/80 transition-colors"
+              className="cursor-pointer hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold glass-card hover:bg-white/[0.06] transition-colors"
             >
               {syncStatus === "synced" ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-emerald-300">Spreadsheet Terhubung</span>
+                  <span className="text-emerald-300">Sheets Terhubung</span>
                 </>
               ) : syncStatus === "syncing" ? (
                 <>
                   <RefreshCw className="w-3 h-3 text-amber-400 animate-spin" />
-                  <span className="text-amber-300">Menyinkronkan...</span>
+                  <span className="text-amber-300">Sinkron...</span>
                 </>
               ) : syncStatus === "error" ? (
                 <>
@@ -218,7 +220,7 @@ export default function HomePage() {
               ) : (
                 <>
                   <Database className="w-3 h-3 text-slate-400" />
-                  <span className="text-slate-400">Mode Lokal (Klik hubungkan Sheets)</span>
+                  <span className="text-slate-400">Mode Lokal</span>
                 </>
               )}
             </div>
@@ -229,7 +231,7 @@ export default function HomePage() {
                 onClick={() => fetchSpreadsheetData(scriptUrl)}
                 disabled={isLoading}
                 title="Tarik Data Terbaru dari Spreadsheet"
-                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors cursor-pointer"
+                className="p-2 glass-card hover:bg-white/[0.08] text-slate-300 rounded-xl transition-colors cursor-pointer"
               >
                 <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-emerald-400" : ""}`} />
               </button>
@@ -238,52 +240,92 @@ export default function HomePage() {
             {/* Settings Button */}
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl transition-all shadow-sm shadow-emerald-500/20 cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-gradient-to-r from-emerald-400 to-teal-400 hover:brightness-110 text-slate-950 rounded-xl shadow-md transition-all cursor-pointer glow-emerald"
             >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>Google Sheets</span>
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Google Sheets</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 mt-6 space-y-6">
-        {/* Info Banner Denah & Target */}
-        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <main className="max-w-6xl mx-auto px-3.5 sm:px-4 mt-4 sm:mt-6 space-y-4 sm:space-y-6">
+        {/* Banner Target Budget & Tukang */}
+        <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md">
-                Rencana Anggaran Biaya (RAB)
+                RAB 2 Lantai
               </span>
-              <span className="text-xs text-slate-400">Pondasi 1 Lt (37,5 m²) + 2 Lt (80 m²)</span>
+              <span className="text-[11px] text-slate-400">Pondasi 1 Lt (37,5 m²) + 2 Lt (80 m²)</span>
             </div>
-            <h2 className="text-lg font-bold">
-              Target Biaya Total Bangun: Rp 357 Juta (Pesimis: Rp 381,6 Juta)
+            <h2 className="text-base sm:text-lg font-bold text-white">
+              Target Bangun: Rp 357 Juta (Pesimis: Rp 381,6 Juta)
             </h2>
-            <p className="text-xs text-slate-300">
-              Jasa Tukang Pemborongan Terkunci Rp 110.000.000,- (Sesuai Kontrak Kerja).
+            <p className="text-[11px] sm:text-xs text-slate-300">
+              Jasa Tukang Pemborongan Terkunci: <span className="text-emerald-400 font-bold">Rp 110.000.000,-</span>
             </p>
           </div>
 
           <div className="flex items-center gap-2 self-start md:self-auto">
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="text-xs font-medium px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors border border-white/10 flex items-center gap-1.5 cursor-pointer"
+              className="text-xs font-medium px-3 py-1.5 glass-card hover:bg-white/[0.08] text-slate-300 rounded-xl transition-colors border border-white/10 flex items-center gap-1.5 cursor-pointer"
             >
-              <Settings className="w-3.5 h-3.5" />
-              Pengaturan Spreadsheet
+              <Settings className="w-3.5 h-3.5 text-slate-400" />
+              Koneksi Sheets
             </button>
           </div>
         </div>
 
-        {/* Dashboard Grid: Budget Summary (Left) & Form Input (Right) */}
+        {/* Mobile Navigation Segmented Tabs (Visible on screens < lg) */}
+        <div className="flex lg:hidden bg-slate-900/80 p-1 rounded-2xl border border-white/10 glass-panel">
+          <button
+            onClick={() => setMobileTab("dashboard")}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              mobileTab === "dashboard"
+                ? "bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 shadow-md"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            Ringkasan
+          </button>
+          <button
+            onClick={() => setMobileTab("form")}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              mobileTab === "form"
+                ? "bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 shadow-md"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <PlusCircle className="w-3.5 h-3.5" />
+            {editingExpense ? "Edit" : "+ Input"}
+          </button>
+          <button
+            onClick={() => setMobileTab("list")}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              mobileTab === "list"
+                ? "bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 shadow-md"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <ListOrdered className="w-3.5 h-3.5" />
+            Riwayat ({expenses.length})
+          </button>
+        </div>
+
+        {/* Desktop Layout Grid (Visible always on lg, controlled by tabs on mobile) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-7 space-y-6">
+          {/* Left Column: Budget Summary */}
+          <div className={`lg:col-span-7 space-y-6 ${mobileTab !== "dashboard" ? "hidden lg:block" : ""}`}>
             <BudgetSummary expenses={expenses} budgets={budgets} />
           </div>
 
-          <div className="lg:col-span-5">
+          {/* Right Column: Expense Form */}
+          <div className={`lg:col-span-5 ${mobileTab !== "form" ? "hidden lg:block" : ""}`}>
             <div className="sticky top-20">
               <ExpenseForm
                 onAddExpense={handleAddExpense}
@@ -296,12 +338,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Expense History List */}
-        <div className="space-y-3 pt-2">
+        {/* Expense History List (Always visible on desktop, tab-controlled on mobile) */}
+        <div className={`space-y-3 pt-2 ${mobileTab !== "list" ? "hidden lg:block" : ""}`}>
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+            <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
               Riwayat Pengeluaran
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-emerald-500/20">
                 {expenses.length} transaksi
               </span>
             </h3>
@@ -312,12 +354,46 @@ export default function HomePage() {
             onDeleteExpense={handleDeleteExpense}
             onEditExpense={(item) => {
               setEditingExpense(item);
-              window.scrollTo({ top: 150, behavior: "smooth" });
+              setMobileTab("form");
+              window.scrollTo({ top: 120, behavior: "smooth" });
             }}
             isLoading={isLoading}
           />
         </div>
       </main>
+
+      {/* Floating Bottom Bar for Quick Mobile Access */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#090d16]/90 backdrop-blur-xl border-t border-white/10 px-6 py-2.5 flex items-center justify-around">
+        <button
+          onClick={() => setMobileTab("dashboard")}
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold cursor-pointer ${
+            mobileTab === "dashboard" ? "text-emerald-400" : "text-slate-400"
+          }`}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          <span>Budget</span>
+        </button>
+
+        <button
+          onClick={() => setMobileTab("form")}
+          className="flex flex-col items-center -mt-5 cursor-pointer"
+        >
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-400 text-slate-950 flex items-center justify-center shadow-lg glow-emerald font-bold">
+            <PlusCircle className="w-6 h-6" />
+          </div>
+          <span className="text-[10px] font-bold text-white mt-1">Catat</span>
+        </button>
+
+        <button
+          onClick={() => setMobileTab("list")}
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-semibold cursor-pointer ${
+            mobileTab === "list" ? "text-emerald-400" : "text-slate-400"
+          }`}
+        >
+          <ListOrdered className="w-5 h-5" />
+          <span>Riwayat</span>
+        </button>
+      </div>
 
       {/* Settings Modal */}
       <SettingsModal
