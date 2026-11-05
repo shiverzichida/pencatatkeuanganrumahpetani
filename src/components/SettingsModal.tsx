@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Settings, Save, HelpCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Settings, Save, HelpCircle, RotateCcw } from "lucide-react";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -17,6 +17,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSaveUrl,
 }) => {
   const [urlInput, setUrlInput] = useState(scriptUrl);
+
+  useEffect(() => {
+    setUrlInput(scriptUrl);
+  }, [scriptUrl, isOpen]);
 
   if (!isOpen) return null;
 

@@ -9,11 +9,14 @@ import { MaterialCalculatorModal } from "@/components/MaterialCalculatorModal";
 import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES } from "@/types/expense";
 import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered } from "lucide-react";
 
+export const DEFAULT_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbwIJPWHwKL36YxZ6mPNo6gS8Rwu_mBOxT5qoB5to0l0AJV4qZLrZWoo4QmbzYxXHRuU_w/exec";
+
 export default function HomePage() {
   const [expenses, setExpenses] = useState<ExpenseItem[]>(INITIAL_EXPENSES);
   const [budgets, setBudgets] = useState<BudgetCategory[]>(DEFAULT_BUDGETS);
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
-  const [scriptUrl, setScriptUrl] = useState<string>("");
+  const [scriptUrl, setScriptUrl] = useState<string>(DEFAULT_SCRIPT_URL);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isCalcOpen, setIsCalcOpen] = useState<boolean>(false);
   const [prefillData, setPrefillData] = useState<{
@@ -24,14 +27,14 @@ export default function HomePage() {
     unitPrice?: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [syncStatus, setSyncStatus] = useState<"synced" | "local" | "syncing" | "error">("local");
+  const [syncStatus, setSyncStatus] = useState<"synced" | "local" | "syncing" | "error">("syncing");
 
   // Mobile Tab state: 'dashboard' | 'form' | 'list'
   const [mobileTab, setMobileTab] = useState<"dashboard" | "form" | "list">("dashboard");
 
   // Load initial settings & local data
   useEffect(() => {
-    const savedUrl = localStorage.getItem("gapps_script_url") || "";
+    const savedUrl = localStorage.getItem("gapps_script_url") || DEFAULT_SCRIPT_URL;
     setScriptUrl(savedUrl);
 
     const savedExpenses = localStorage.getItem("local_expenses");
