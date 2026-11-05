@@ -178,7 +178,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
                 {/* Price & Actions */}
                 <div className="flex items-center justify-between sm:justify-end gap-3 self-end sm:self-center w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
                   <div className="text-right">
-                    <p className={`text-sm sm:text-base font-black ${
+                    <p className={`text-sm sm:text-base font-black font-mono tabular-nums tracking-tight ${
                       exp.paymentStatus === "Bon / Tempo" ? "text-amber-400" : "text-emerald-400"
                     }`}>
                       {formatRupiah(exp.totalPrice)}

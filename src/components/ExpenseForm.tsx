@@ -1,8 +1,25 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { PlusCircle, Edit3, Receipt, Store, Calendar, FileText, Image, Check, X, Mic, MicOff, Calculator } from "lucide-react";
+import {
+  PlusCircle,
+  Edit3,
+  Receipt,
+  Store,
+  Calendar,
+  FileText,
+  Image,
+  Check,
+  X,
+  Mic,
+  MicOff,
+  Calculator,
+  Sparkles,
+  CornerDownLeft,
+} from "lucide-react";
 import { CATEGORIES, ExpenseItem } from "@/types/expense";
+import { parseQuickExpense, ParsedQuickExpense } from "@/lib/quickParser";
+import { formatRupiah } from "@/lib/utils";
 
 interface ExpenseFormProps {
   onAddExpense: (expense: Omit<ExpenseItem, "id" | "createdAt">) => Promise<void>;
@@ -79,6 +96,19 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
   const calculatedTotal = qty * unitPrice;
 
+  // Smart Parser for Quick Text (e.g. "cerucuk 8 meter 100 pcs @60rb")
+  const quickDetected = parseQuickExpense(itemName);
+
+  const applyQuickParsed = (parsed: ParsedQuickExpense) => {
+    setItemName(parsed.itemName);
+    setQty(parsed.qty);
+    setUnit(parsed.unit);
+    setUnitPrice(parsed.unitPrice);
+    if (parsed.suggestedCategory) {
+      setCategory(parsed.suggestedCategory);
+    }
+  };
+
   // Fitur #7: Voice-to-Text Input (SpeechRecognition API)
   const handleVoiceInput = () => {
     const SpeechRecognition =
@@ -106,7 +136,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setItemName((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        const fullText = (itemName ? `${itemName} ${transcript}` : transcript).trim();
+        const parsed = parseQuickExpense(fullText);
+        if (parsed) {
+          applyQuickParsed(parsed);
+        } else {
+          setItemName(fullText);
+        }
         setIsListening(false);
       };
 
@@ -293,29 +329,29 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           </div>
         </div>
 
-        {/* Row 2: Uraian Barang + Voice-to-Text Button */}
+        {/* Row 2: Uraian Barang + Voice-to-Text Button + Quick NLP Parser */}
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-[11px] font-semibold text-slate-300">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-semibold text-slate-200">
               Uraian Barang / Item Pengeluaran <span className="text-rose-400">*</span>
             </label>
             {/* Fitur #7: Voice Button */}
             <button
               type="button"
               onClick={handleVoiceInput}
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-lg flex items-center gap-1 transition-all cursor-pointer ${
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer ${
                 isListening
-                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse"
-                  : "bg-slate-800 text-slate-400 hover:text-white"
+                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/50 animate-pulse"
+                  : "bg-slate-800/90 text-slate-300 hover:text-white border border-slate-700/60"
               }`}
             >
               {isListening ? (
                 <>
-                  <MicOff className="w-3 h-3" /> Mendengarkan...
+                  <MicOff className="w-3.5 h-3.5 text-rose-400" /> Mendengarkan...
                 </>
               ) : (
                 <>
-                  <Mic className="w-3 h-3 text-emerald-400" /> Suara (Voice)
+                  <Mic className="w-3.5 h-3.5 text-emerald-400" /> Suara (Voice)
                 </>
               )}
             </button>
@@ -323,57 +359,137 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
           <input
             type="text"
-            placeholder="Contoh: Semen 50kg, Besi 13 Ulir, Pasir 2 Pick Up..."
+            placeholder="Ketik langsung: cerucuk 8 meter 100 pcs @60rb..."
             value={itemName}
             onChange={(e) => setItemName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && quickDetected) {
+                e.preventDefault();
+                applyQuickParsed(quickDetected);
+              }
+            }}
+            onBlur={() => {
+              if (quickDetected) {
+                applyQuickParsed(quickDetected);
+              }
+            }}
             required
-            className="w-full text-xs sm:text-sm glass-input rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-slate-500 font-medium"
+            className="w-full text-sm bg-slate-900/90 border border-slate-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 text-white placeholder:text-slate-500 font-medium tracking-wide transition-all"
           />
+
+          {/* Quick Detected Live Pill */}
+          {quickDetected && (
+            <div className="mt-2 flex items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs animate-in fade-in duration-150">
+              <div className="flex items-center gap-2 text-emerald-300 min-w-0">
+                <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0 animate-pulse" />
+                <div className="truncate">
+                  <span className="text-[10px] text-slate-400 block">Pemisahan Cepat Otomatis:</span>
+                  <span className="font-bold text-white">{quickDetected.itemName}</span>
+                  <span className="text-emerald-300 font-mono ml-1.5 font-bold">
+                    {quickDetected.qty} {quickDetected.unit} × {formatRupiah(quickDetected.unitPrice)}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => applyQuickParsed(quickDetected)}
+                className="px-3 py-1.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold rounded-lg text-xs flex items-center gap-1 transition-all shadow-md cursor-pointer flex-shrink-0"
+              >
+                <span>Terapkan</span>
+                <CornerDownLeft className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Quick Format Suggestion Pills */}
+          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] text-slate-400">Contoh format cepat:</span>
+            <button
+              type="button"
+              onClick={() => {
+                const parsed = parseQuickExpense("cerucuk 8 meter 100 pcs @60rb");
+                if (parsed) applyQuickParsed(parsed);
+              }}
+              className="text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700/80 transition-colors cursor-pointer"
+            >
+              cerucuk 8 meter 100 pcs @60rb
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const parsed = parseQuickExpense("semen 20 sak @82rb");
+                if (parsed) applyQuickParsed(parsed);
+              }}
+              className="text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700/80 transition-colors cursor-pointer"
+            >
+              semen 20 sak @82rb
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const parsed = parseQuickExpense("pasir 2 pickup @230rb");
+                if (parsed) applyQuickParsed(parsed);
+              }}
+              className="text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700/80 transition-colors cursor-pointer"
+            >
+              pasir 2 pickup @230rb
+            </button>
+          </div>
         </div>
 
-        {/* Row 3: Qty, Satuan, Harga Satuan, Total */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 glass-panel-subtle p-3 rounded-xl border border-white/5">
-          <div>
-            <label className="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">Jumlah (Qty)</label>
-            <input
-              type="number"
-              min="0.1"
-              step="any"
-              value={qty}
-              onChange={(e) => setQty(parseFloat(e.target.value) || 0)}
-              required
-              className="w-full text-xs sm:text-sm glass-input rounded-lg px-2 py-1.5 focus:outline-none text-center font-bold text-white"
-            />
-          </div>
+        {/* Row 3: Qty, Satuan, Harga Satuan, Total (Matching user screenshot & clean finance styling) */}
+        <div className="bg-[#0b101c] p-3 sm:p-4 rounded-2xl border border-slate-800/90 shadow-inner">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
+                Jumlah (Qty)
+              </label>
+              <input
+                type="number"
+                min="0.1"
+                step="any"
+                value={qty}
+                onChange={(e) => setQty(parseFloat(e.target.value) || 0)}
+                required
+                className="w-full text-sm sm:text-base bg-slate-900/80 border border-slate-700/70 rounded-xl px-2.5 py-2 focus:outline-none focus:border-emerald-500 text-center font-extrabold text-white font-mono tabular-nums"
+              />
+            </div>
 
-          <div>
-            <label className="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">Satuan</label>
-            <input
-              type="text"
-              placeholder="sak / btg"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              className="w-full text-xs sm:text-sm glass-input rounded-lg px-2 py-1.5 focus:outline-none text-center text-white"
-            />
-          </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
+                Satuan
+              </label>
+              <input
+                type="text"
+                placeholder="btg / pcs / sak"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                className="w-full text-sm sm:text-base bg-slate-900/80 border border-slate-700/70 rounded-xl px-2.5 py-2 focus:outline-none focus:border-emerald-500 text-center text-slate-200 font-semibold"
+              />
+            </div>
 
-          <div>
-            <label className="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">Harga Satuan (Rp)</label>
-            <input
-              type="number"
-              min="0"
-              step="100"
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(parseInt(e.target.value) || 0)}
-              required
-              className="w-full text-xs sm:text-sm glass-input rounded-lg px-2 py-1.5 focus:outline-none font-semibold text-right text-emerald-400"
-            />
-          </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
+                Harga Satuan (Rp)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="100"
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(parseInt(e.target.value) || 0)}
+                required
+                className="w-full text-sm sm:text-base bg-slate-900/80 border border-emerald-500/50 rounded-xl px-2.5 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400 focus:border-emerald-400 font-bold text-right text-emerald-400 font-mono tabular-nums"
+              />
+            </div>
 
-          <div>
-            <label className="block text-[10px] sm:text-xs font-semibold text-slate-400 mb-1">Total (Rp)</label>
-            <div className="text-xs sm:text-sm font-extrabold text-white py-1.5 px-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-right truncate">
-              {new Intl.NumberFormat("id-ID").format(calculatedTotal)}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
+                Total (Rp)
+              </label>
+              <div className="text-sm sm:text-base font-black text-emerald-300 py-2 px-3 bg-emerald-950/30 border border-emerald-500/40 rounded-xl text-right font-mono tabular-nums tracking-tight truncate flex items-center justify-end">
+                {new Intl.NumberFormat("id-ID").format(calculatedTotal)}
+              </div>
             </div>
           </div>
         </div>

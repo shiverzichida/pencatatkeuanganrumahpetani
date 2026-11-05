@@ -204,10 +204,10 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 pb-24 md:pb-16 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
+    <div className="min-h-screen bg-[#080c15] text-slate-100 pb-24 md:pb-16 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
       {/* Floating Global Toast Notification */}
       {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl glass-panel shadow-2xl border border-emerald-500/50 bg-[#090d16]/95 text-white animate-in fade-in slide-in-from-top-3 duration-200">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-2xl border border-emerald-500/50 bg-[#0c1222] text-white animate-in fade-in slide-in-from-top-3 duration-200">
           <div
             className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
               toast.type === "error"
@@ -223,12 +223,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Background Radial Glow */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />
-      <div className="fixed top-1/3 right-0 w-[400px] h-[300px] bg-indigo-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />
-
       {/* Top Header Glass */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#090d16]/75 border-b border-white/5">
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#080c15]/90 border-b border-slate-800/80">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">
