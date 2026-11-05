@@ -2,18 +2,20 @@
 
 import React, { useState } from "react";
 import { formatRupiah, formatDateIndo } from "@/lib/utils";
-import { Search, Filter, Trash2, ExternalLink, Calendar, Store, Tag } from "lucide-react";
+import { Search, Filter, Trash2, Edit3, ExternalLink, Calendar, Store, Tag } from "lucide-react";
 import { CATEGORIES, ExpenseItem } from "@/types/expense";
 
 interface ExpenseListProps {
   expenses: ExpenseItem[];
   onDeleteExpense: (id: string) => Promise<void>;
+  onEditExpense: (expense: ExpenseItem) => void;
   isLoading: boolean;
 }
 
 export const ExpenseList: React.FC<ExpenseListProps> = ({
   expenses,
   onDeleteExpense,
+  onEditExpense,
   isLoading,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -64,7 +66,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
       {/* List / Table */}
       {filteredExpenses.length === 0 ? (
         <div className="p-12 text-center text-slate-400 text-sm">
-          Tidak ada catatan pengeluaran yang cocok dengan pencarian.
+          Belum ada catatan pengeluaran yang cocok.
         </div>
       ) : (
         <div className="divide-y divide-slate-100">
@@ -116,12 +118,24 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
                   {exp.receiptUrl && (
                     <button
                       onClick={() => setActiveReceiptModal(exp.receiptUrl || null)}
-                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors title='Lihat Nota'"
+                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Lihat Foto Nota"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </button>
                   )}
 
+                  {/* Tombol Edit */}
+                  <button
+                    onClick={() => onEditExpense(exp)}
+                    disabled={isLoading}
+                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                    title="Edit Transaksi Ini"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+
+                  {/* Tombol Hapus */}
                   <button
                     onClick={() => {
                       if (confirm(`Hapus catatan: "${exp.itemName}" (${formatRupiah(exp.totalPrice)})?`)) {
@@ -129,7 +143,8 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
                       }
                     }}
                     disabled={isLoading}
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors title='Hapus'"
+                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                    title="Hapus Transaksi"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

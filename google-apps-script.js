@@ -185,6 +185,52 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
+    if (action === "edit") {
+      const exp = contents.data;
+      const idToEdit = exp.id;
+      const rows = sheet.getDataRange().getValues();
+      let found = false;
+      
+      for (let i = 1; i < rows.length; i++) {
+        if (String(rows[i][0]) === String(idToEdit)) {
+          const rowNum = i + 1;
+          const date = exp.date || rows[i][1];
+          const category = exp.category || rows[i][2];
+          const itemName = exp.itemName || rows[i][3];
+          const qty = Number(exp.qty) || Number(rows[i][4]) || 1;
+          const unit = exp.unit || rows[i][5] || "ls";
+          const unitPrice = Number(exp.unitPrice) || Number(rows[i][6]) || 0;
+          const totalPrice = Number(exp.totalPrice) || (qty * unitPrice);
+          const vendor = exp.vendor !== undefined ? exp.vendor : rows[i][8];
+          const notes = exp.notes !== undefined ? exp.notes : rows[i][9];
+          const receiptUrl = exp.receiptUrl !== undefined ? exp.receiptUrl : rows[i][10];
+          const updatedAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+
+          sheet.getRange(rowNum, 1, 1, 12).setValues([[
+            idToEdit,
+            date,
+            category,
+            itemName,
+            qty,
+            unit,
+            unitPrice,
+            totalPrice,
+            vendor,
+            notes,
+            receiptUrl,
+            updatedAt
+          ]]);
+          found = true;
+          break;
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ 
+        status: found ? "success" : "not_found",
+        message: found ? "Data berhasil diubah di Spreadsheet" : "ID tidak ditemukan" 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (action === "delete") {
       const idToDelete = contents.id;
       const rows = sheet.getDataRange().getValues();

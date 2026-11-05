@@ -1,30 +1,58 @@
 "use client";
 
-import React, { useState } from "react";
-import { PlusCircle, Receipt, Store, Calendar, FileText, Image, AlertCircle, Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { PlusCircle, Edit3, Receipt, Store, Calendar, FileText, Image, Check, X } from "lucide-react";
 import { CATEGORIES, ExpenseItem } from "@/types/expense";
 
 interface ExpenseFormProps {
   onAddExpense: (expense: Omit<ExpenseItem, "id" | "createdAt">) => Promise<void>;
+  onUpdateExpense: (expense: ExpenseItem) => Promise<void>;
+  editingExpense: ExpenseItem | null;
+  onCancelEdit: () => void;
   isLoading: boolean;
 }
 
-export const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, isLoading }) => {
+export const ExpenseForm: React.FC<ExpenseFormProps> = ({
+  onAddExpense,
+  onUpdateExpense,
+  editingExpense,
+  onCancelEdit,
+  isLoading,
+}) => {
   const [date, setDate] = useState<string>("");
-
-  React.useEffect(() => {
-    setDate(new Date().toISOString().split("T")[0]);
-  }, []);
-  const [category, setCategory] = useState<string>(CATEGORIES[1]); // Default to Material Struktur Bawah
+  const [category, setCategory] = useState<string>(CATEGORIES[1]); // Default Material Struktur Bawah
   const [itemName, setItemName] = useState<string>("");
   const [qty, setQty] = useState<number>(1);
-  const [unit, setUnit] = useState<string>("sak");
-  const [unitPrice, setUnitPrice] = useState<number>(82000);
+  const [unit, setUnit] = useState<string>("btg");
+  const [unitPrice, setUnitPrice] = useState<number>(29000);
   const [vendor, setVendor] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [receiptUrl, setReceiptUrl] = useState<string>("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<boolean>(false);
+
+  // Sync state when editingExpense changes
+  useEffect(() => {
+    if (editingExpense) {
+      setDate(editingExpense.date || "");
+      setCategory(editingExpense.category || CATEGORIES[1]);
+      setItemName(editingExpense.itemName || "");
+      setQty(editingExpense.qty || 1);
+      setUnit(editingExpense.unit || "btg");
+      setUnitPrice(editingExpense.unitPrice || 0);
+      setVendor(editingExpense.vendor || "");
+      setNotes(editingExpense.notes || "");
+      setReceiptUrl(editingExpense.receiptUrl || "");
+      setPreviewImage(editingExpense.receiptUrl || null);
+    } else {
+      setDate(new Date().toISOString().split("T")[0]);
+      setItemName("");
+      setVendor("");
+      setNotes("");
+      setReceiptUrl("");
+      setPreviewImage(null);
+    }
+  }, [editingExpense]);
 
   const calculatedTotal = qty * unitPrice;
 
@@ -53,46 +81,95 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, isLoadin
       return;
     }
 
-    await onAddExpense({
-      date,
-      category,
-      itemName,
-      qty,
-      unit,
-      unitPrice,
-      totalPrice: calculatedTotal,
-      vendor,
-      notes,
-      receiptUrl,
-    });
+    if (editingExpense) {
+      // Update Mode
+      await onUpdateExpense({
+        ...editingExpense,
+        date,
+        category,
+        itemName,
+        qty,
+        unit,
+        unitPrice,
+        totalPrice: calculatedTotal,
+        vendor,
+        notes,
+        receiptUrl,
+      });
+      onCancelEdit();
+    } else {
+      // Add Mode
+      await onAddExpense({
+        date,
+        category,
+        itemName,
+        qty,
+        unit,
+        unitPrice,
+        totalPrice: calculatedTotal,
+        vendor,
+        notes,
+        receiptUrl,
+      });
+      // Reset form
+      setItemName("");
+      setVendor("");
+      setNotes("");
+      setReceiptUrl("");
+      setPreviewImage(null);
+    }
 
-    // Reset some inputs
-    setItemName("");
-    setVendor("");
-    setNotes("");
-    setReceiptUrl("");
-    setPreviewImage(null);
     setSuccessMsg(true);
     setTimeout(() => setSuccessMsg(false), 3000);
   };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-5 text-white flex items-center justify-between">
+      <div
+        className={`p-5 text-white flex items-center justify-between transition-colors ${
+          editingExpense
+            ? "bg-gradient-to-r from-amber-700 via-amber-800 to-slate-900"
+            : "bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950"
+        }`}
+      >
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2">
-            <PlusCircle className="w-5 h-5 text-emerald-400" />
-            Catat Pengeluaran Baru
+            {editingExpense ? (
+              <>
+                <Edit3 className="w-5 h-5 text-amber-300" />
+                Edit Transaksi Pengeluaran
+              </>
+            ) : (
+              <>
+                <PlusCircle className="w-5 h-5 text-emerald-400" />
+                Catat Pengeluaran Baru
+              </>
+            )}
           </h2>
           <p className="text-xs text-slate-300 mt-0.5">
-            Otomatis tersimpan & terhubung ke Google Spreadsheet
+            {editingExpense
+              ? "Perubahan akan otomatis disinkronkan ke Spreadsheet"
+              : "Otomatis tersimpan & terhubung ke Google Spreadsheet"}
           </p>
         </div>
-        {successMsg && (
-          <span className="bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1 rounded-full border border-emerald-500/40 flex items-center gap-1 font-medium animate-pulse">
-            <Check className="w-3.5 h-3.5" /> Tersimpan!
-          </span>
-        )}
+
+        <div className="flex items-center gap-2">
+          {editingExpense && (
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="text-xs bg-white/20 hover:bg-white/30 text-white px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" /> Batal Edit
+            </button>
+          )}
+
+          {successMsg && (
+            <span className="bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1 rounded-full border border-emerald-500/40 flex items-center gap-1 font-medium animate-pulse">
+              <Check className="w-3.5 h-3.5" /> Berhasil!
+            </span>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -175,7 +252,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, isLoadin
             <input
               type="number"
               min="0"
-              step="1000"
+              step="100"
               value={unitPrice}
               onChange={(e) => setUnitPrice(parseInt(e.target.value) || 0)}
               required
@@ -249,21 +326,42 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, isLoadin
           </div>
         </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer"
-        >
-          {isLoading ? (
-            <span>Menyimpan ke Google Spreadsheet...</span>
-          ) : (
-            <>
-              <Receipt className="w-4 h-4 text-emerald-400" />
-              Simpan Pengeluaran
-            </>
+        {/* Submit & Cancel Buttons */}
+        <div className="flex gap-2.5 pt-1">
+          {editingExpense && (
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="w-1/3 py-3 px-4 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold text-sm transition-all cursor-pointer"
+            >
+              Batal
+            </button>
           )}
-        </button>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`flex-1 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer ${
+              editingExpense
+                ? "bg-amber-600 hover:bg-amber-500"
+                : "bg-slate-900 hover:bg-slate-800"
+            }`}
+          >
+            {isLoading ? (
+              <span>Menyimpan ke Google Spreadsheet...</span>
+            ) : editingExpense ? (
+              <>
+                <Check className="w-4 h-4 text-white" />
+                Simpan Perubahan
+              </>
+            ) : (
+              <>
+                <Receipt className="w-4 h-4 text-emerald-400" />
+                Simpan Pengeluaran
+              </>
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );

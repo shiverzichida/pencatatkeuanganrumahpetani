@@ -6,11 +6,12 @@ import { BudgetSummary } from "@/components/BudgetSummary";
 import { ExpenseList } from "@/components/ExpenseList";
 import { SettingsModal } from "@/components/SettingsModal";
 import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES } from "@/types/expense";
-import { Home, RefreshCw, Settings, Database, FileSpreadsheet, Sparkles } from "lucide-react";
+import { Home, RefreshCw, Settings, Database, FileSpreadsheet } from "lucide-react";
 
 export default function HomePage() {
   const [expenses, setExpenses] = useState<ExpenseItem[]>(INITIAL_EXPENSES);
   const [budgets, setBudgets] = useState<BudgetCategory[]>(DEFAULT_BUDGETS);
+  const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
   const [scriptUrl, setScriptUrl] = useState<string>("");
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -99,11 +100,46 @@ export default function HomePage() {
     }
   };
 
+  // Update Expense (Edit)
+  const handleUpdateExpense = async (updatedExp: ExpenseItem) => {
+    const updatedList = expenses.map((item) =>
+      item.id === updatedExp.id ? updatedExp : item
+    );
+    setExpenses(updatedList);
+    localStorage.setItem("local_expenses", JSON.stringify(updatedList));
+
+    if (scriptUrl) {
+      setIsLoading(true);
+      try {
+        await fetch(scriptUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+          },
+          body: JSON.stringify({
+            action: "edit",
+            data: updatedExp,
+          }),
+        });
+        setSyncStatus("synced");
+      } catch (err) {
+        console.error("Gagal update di Google Spreadsheet", err);
+        setSyncStatus("error");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
   // Delete Expense
   const handleDeleteExpense = async (id: string) => {
     const updated = expenses.filter((e) => e.id !== id);
     setExpenses(updated);
     localStorage.setItem("local_expenses", JSON.stringify(updated));
+
+    if (editingExpense && editingExpense.id === id) {
+      setEditingExpense(null);
+    }
 
     if (scriptUrl) {
       setIsLoading(true);
@@ -193,7 +229,7 @@ export default function HomePage() {
                 onClick={() => fetchSpreadsheetData(scriptUrl)}
                 disabled={isLoading}
                 title="Tarik Data Terbaru dari Spreadsheet"
-                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors"
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors cursor-pointer"
               >
                 <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-emerald-400" : ""}`} />
               </button>
@@ -202,7 +238,7 @@ export default function HomePage() {
             {/* Settings Button */}
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl transition-all shadow-sm shadow-emerald-500/20"
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl transition-all shadow-sm shadow-emerald-500/20 cursor-pointer"
             >
               <FileSpreadsheet className="w-4 h-4" />
               <span>Google Sheets</span>
@@ -233,7 +269,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2 self-start md:self-auto">
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="text-xs font-medium px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors border border-white/10 flex items-center gap-1.5"
+              className="text-xs font-medium px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors border border-white/10 flex items-center gap-1.5 cursor-pointer"
             >
               <Settings className="w-3.5 h-3.5" />
               Pengaturan Spreadsheet
@@ -249,7 +285,13 @@ export default function HomePage() {
 
           <div className="lg:col-span-5">
             <div className="sticky top-20">
-              <ExpenseForm onAddExpense={handleAddExpense} isLoading={isLoading} />
+              <ExpenseForm
+                onAddExpense={handleAddExpense}
+                onUpdateExpense={handleUpdateExpense}
+                editingExpense={editingExpense}
+                onCancelEdit={() => setEditingExpense(null)}
+                isLoading={isLoading}
+              />
             </div>
           </div>
         </div>
@@ -268,6 +310,10 @@ export default function HomePage() {
           <ExpenseList
             expenses={expenses}
             onDeleteExpense={handleDeleteExpense}
+            onEditExpense={(item) => {
+              setEditingExpense(item);
+              window.scrollTo({ top: 150, behavior: "smooth" });
+            }}
             isLoading={isLoading}
           />
         </div>
