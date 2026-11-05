@@ -7,7 +7,7 @@ import { ExpenseList } from "@/components/ExpenseList";
 import { SettingsModal } from "@/components/SettingsModal";
 import { MaterialCalculatorModal } from "@/components/MaterialCalculatorModal";
 import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES } from "@/types/expense";
-import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered } from "lucide-react";
+import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered, CheckCircle2 } from "lucide-react";
 
 export const DEFAULT_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwIJPWHwKL36YxZ6mPNo6gS8Rwu_mBOxT5qoB5to0l0AJV4qZLrZWoo4QmbzYxXHRuU_w/exec";
@@ -28,6 +28,14 @@ export default function HomePage() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<"synced" | "local" | "syncing" | "error">("syncing");
+  const [toast, setToast] = useState<{ message: string; type?: "success" | "info" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "info" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3200);
+  };
 
   // Mobile Tab state: 'dashboard' | 'form' | 'list'
   const [mobileTab, setMobileTab] = useState<"dashboard" | "form" | "list">("dashboard");
@@ -87,6 +95,7 @@ export default function HomePage() {
     const updated = [newExpense, ...expenses];
     setExpenses(updated);
     localStorage.setItem("local_expenses", JSON.stringify(updated));
+    showToast("✓ Pengeluaran baru berhasil disimpan!");
 
     if (scriptUrl) {
       setIsLoading(true);
@@ -117,6 +126,7 @@ export default function HomePage() {
     );
     setExpenses(updatedList);
     localStorage.setItem("local_expenses", JSON.stringify(updatedList));
+    showToast("✓ Perubahan berhasil disimpan!");
 
     if (scriptUrl) {
       setIsLoading(true);
@@ -145,6 +155,7 @@ export default function HomePage() {
     const updated = expenses.filter((e) => e.id !== id);
     setExpenses(updated);
     localStorage.setItem("local_expenses", JSON.stringify(updated));
+    showToast("Catatan pengeluaran telah dihapus.", "info");
 
     if (editingExpense && editingExpense.id === id) {
       setEditingExpense(null);
@@ -179,6 +190,7 @@ export default function HomePage() {
       ...item,
       paymentStatus: nextStatus,
     });
+    showToast(`Status diubah jadi: ${nextStatus}`);
   };
 
   const handleSaveScriptUrl = (url: string) => {
@@ -193,6 +205,24 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 pb-24 md:pb-16 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
+      {/* Floating Global Toast Notification */}
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl glass-panel shadow-2xl border border-emerald-500/50 bg-[#090d16]/95 text-white animate-in fade-in slide-in-from-top-3 duration-200">
+          <div
+            className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+              toast.type === "error"
+                ? "bg-rose-500/20 text-rose-400"
+                : toast.type === "info"
+                ? "bg-slate-700 text-slate-300"
+                : "bg-emerald-500/25 text-emerald-400"
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+          <span className="text-xs sm:text-sm font-bold text-slate-100">{toast.message}</span>
+        </div>
+      )}
+
       {/* Background Radial Glow */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />
       <div className="fixed top-1/3 right-0 w-[400px] h-[300px] bg-indigo-500/10 rounded-full blur-[140px] pointer-events-none -z-10" />

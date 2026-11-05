@@ -188,6 +188,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     }
 
     setSuccessMsg(true);
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      try {
+        navigator.vibrate(50);
+      } catch (e) {
+        // ignore
+      }
+    }
     setTimeout(() => setSuccessMsg(false), 3000);
   };
 
@@ -443,6 +450,14 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             )}
           </div>
         </div>
+
+        {/* Inline Success Alert Banner */}
+        {successMsg && (
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold animate-in fade-in duration-200">
+            <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>Berhasil! Catatan tersimpan ke Google Sheets.</span>
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex gap-2.5 pt-1">
