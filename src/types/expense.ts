@@ -8,6 +8,7 @@ export interface ExpenseItem {
   unitPrice: number;
   totalPrice: number;
   vendor: string;
+  paymentStatus?: "Lunas" | "Bon / Tempo"; // Fitur #3: Status Pelunasan
   notes?: string;
   receiptUrl?: string; // Data URL (Base64) or external link
   createdAt?: string;

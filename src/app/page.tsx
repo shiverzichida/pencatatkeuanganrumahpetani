@@ -5,6 +5,7 @@ import { ExpenseForm } from "@/components/ExpenseForm";
 import { BudgetSummary } from "@/components/BudgetSummary";
 import { ExpenseList } from "@/components/ExpenseList";
 import { SettingsModal } from "@/components/SettingsModal";
+import { MaterialCalculatorModal } from "@/components/MaterialCalculatorModal";
 import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES } from "@/types/expense";
 import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered } from "lucide-react";
 
@@ -14,6 +15,14 @@ export default function HomePage() {
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
   const [scriptUrl, setScriptUrl] = useState<string>("");
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [isCalcOpen, setIsCalcOpen] = useState<boolean>(false);
+  const [prefillData, setPrefillData] = useState<{
+    category?: string;
+    itemName?: string;
+    qty?: number;
+    unit?: string;
+    unitPrice?: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<"synced" | "local" | "syncing" | "error">("local");
 
@@ -158,6 +167,15 @@ export default function HomePage() {
         setIsLoading(false);
       }
     }
+  };
+
+  const handleTogglePaymentStatus = async (item: ExpenseItem) => {
+    const nextStatus: "Lunas" | "Bon / Tempo" =
+      item.paymentStatus === "Bon / Tempo" ? "Lunas" : "Bon / Tempo";
+    await handleUpdateExpense({
+      ...item,
+      paymentStatus: nextStatus,
+    });
   };
 
   const handleSaveScriptUrl = (url: string) => {
@@ -332,6 +350,8 @@ export default function HomePage() {
                 onUpdateExpense={handleUpdateExpense}
                 editingExpense={editingExpense}
                 onCancelEdit={() => setEditingExpense(null)}
+                onOpenCalculator={() => setIsCalcOpen(true)}
+                prefillData={prefillData}
                 isLoading={isLoading}
               />
             </div>
@@ -357,6 +377,7 @@ export default function HomePage() {
               setMobileTab("form");
               window.scrollTo({ top: 120, behavior: "smooth" });
             }}
+            onTogglePaymentStatus={handleTogglePaymentStatus}
             isLoading={isLoading}
           />
         </div>
@@ -394,6 +415,18 @@ export default function HomePage() {
           <span>Riwayat</span>
         </button>
       </div>
+
+      {/* Material Quick Calculator Modal */}
+      <MaterialCalculatorModal
+        isOpen={isCalcOpen}
+        onClose={() => setIsCalcOpen(false)}
+        onApplyCalculation={(data) => {
+          setPrefillData(data);
+          setMobileTab("form");
+          setIsCalcOpen(false);
+          window.scrollTo({ top: 120, behavior: "smooth" });
+        }}
+      />
 
       {/* Settings Modal */}
       <SettingsModal

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { formatRupiah } from "@/lib/utils";
-import { Wallet, TrendingUp, AlertTriangle } from "lucide-react";
+import { Wallet, TrendingUp, AlertTriangle, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { BudgetCategory, ExpenseItem } from "@/types/expense";
 
 interface BudgetSummaryProps {
@@ -18,24 +18,78 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets 
   const remainingBudget = totalBudget - totalSpent;
   const percentageSpent = Math.min(Math.round((totalSpent / totalBudget) * 100), 100);
 
+  // Early Warning Thresholds (Fitur #4)
+  const isNearBudgetLimit = percentageSpent >= 85 && percentageSpent < 100;
+  const isOverBudget = totalSpent > totalBudget;
+  const isOverPessimistic = totalSpent > totalPessimistic;
+
   const spendingByCategory = budgets.map((b) => {
     const spent = expenses
       .filter((e) => e.category === b.category)
       .reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
     const percent = b.budget > 0 ? Math.round((spent / b.budget) * 100) : 0;
+    const isCategoryWarning = percent >= 85 && percent <= 100;
+    const isCategoryDanger = spent > b.budget;
     return {
       category: b.category,
       budget: b.budget,
       pessimistic: b.pessimistic,
       spent,
       percent,
+      isCategoryWarning,
+      isCategoryDanger,
       isOver: spent > b.budget,
     };
   });
 
   return (
     <div className="space-y-4">
-      {/* 3 Main Highlight Cards - Dark Glassmorphism */}
+      {/* Fitur #4: Early Warning System Banner */}
+      {isOverPessimistic ? (
+        <div className="glass-panel p-3.5 sm:p-4 rounded-2xl border border-rose-500/40 bg-rose-500/10 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
+            <ShieldAlert className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-xs sm:text-sm font-bold text-rose-300">
+              Peringatan Keras: Anggaran Melebihi Batas Pesimis!
+            </h4>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              Total belanja telah melampaui batas toleransi pesimis +10% ({formatRupiah(totalPessimistic)}). Mohon evaluasi pos finishing/MEP.
+            </p>
+          </div>
+        </div>
+      ) : isOverBudget ? (
+        <div className="glass-panel p-3.5 sm:p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-xs sm:text-sm font-bold text-amber-300">
+              Peringatan: Anggaran Melewati Target Standar
+            </h4>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              Pengeluaran kini memasuki zona cadangan pesimis (Sisa cadangan: {formatRupiah(totalPessimistic - totalSpent)}).
+            </p>
+          </div>
+        </div>
+      ) : isNearBudgetLimit ? (
+        <div className="glass-panel p-3 sm:p-3.5 rounded-2xl border border-indigo-500/40 bg-indigo-500/10 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-4 h-4" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-indigo-200">
+              Perhatian: 85% Anggaran Telah Terpakai
+            </h4>
+            <p className="text-[11px] text-slate-300">
+              Sisa anggaran tersisa {formatRupiah(remainingBudget)}. Pastikan pekerjaan struktur inti telah selesai sebelum belanja finishing.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {/* 3 Main Highlight Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Total Terpakai */}
         <div className="glass-panel p-4 rounded-2xl relative overflow-hidden group">
@@ -126,7 +180,12 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets 
           {spendingByCategory.map((cat) => (
             <div key={cat.category} className="space-y-1.5 group">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-slate-200 truncate pr-2 group-hover:text-white transition-colors">
+                <span className="font-medium text-slate-200 truncate pr-2 group-hover:text-white transition-colors flex items-center gap-1.5">
+                  {cat.isCategoryDanger ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                  ) : cat.isCategoryWarning ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  ) : null}
                   {cat.category}
                 </span>
                 <span className="text-slate-400 flex-shrink-0 text-right">
@@ -137,7 +196,7 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets 
               <div className="w-full bg-slate-800/70 rounded-full h-2 overflow-hidden border border-white/5">
                 <div
                   className={`h-full rounded-full transition-all duration-300 ${
-                    cat.isOver
+                    cat.isCategoryDanger
                       ? "bg-rose-500"
                       : cat.percent > 80
                       ? "bg-amber-500"
@@ -148,10 +207,12 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets 
               </div>
               <div className="flex items-center justify-between text-[10px] text-slate-400">
                 <span>{cat.percent}% terpakai</span>
-                {cat.isOver ? (
+                {cat.isCategoryDanger ? (
                   <span className="text-rose-400 font-semibold flex items-center gap-0.5">
                     <AlertTriangle className="w-3 h-3" /> Melebihi budget ({formatRupiah(cat.spent - cat.budget)})
                   </span>
+                ) : cat.isCategoryWarning ? (
+                  <span className="text-amber-400 font-medium">Mendekati limit budget</span>
                 ) : (
                   <span>Sisa: {formatRupiah(cat.budget - cat.spent)}</span>
                 )}
