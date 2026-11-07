@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { X, Printer, CheckCircle, FileText, User, CreditCard, Layout, Hammer } from "lucide-react";
 import { ExpenseItem } from "@/types/expense";
-import { formatRupiah, formatDateIndo, angkaTerbilang } from "@/lib/utils";
+import { formatRupiah, formatDateIndo, angkaTerbilang, formatDateDMonthY } from "@/lib/utils";
 
 interface ReceiptModalProps {
   item: ExpenseItem | null;
@@ -17,6 +17,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ item, onClose }) => 
   const isLaborInitial = Boolean(
     item.laborDetails ||
     item.category === "Jasa Tukang Borongan" ||
+    item.category === "Jasa Tukang Lainnya" ||
     item.itemName.toLowerCase().includes("upah") ||
     item.itemName.toLowerCase().includes("pekan") ||
     item.unit === "pekerja"
@@ -28,22 +29,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ item, onClose }) => 
   const formatPeriodDisplay = (start?: string, end?: string, existingNotes?: string, itemDate?: string) => {
     const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
-    const formatDateObj = (dStr: string) => {
-      const parts = dStr.split("-");
-      if (parts.length === 3) {
-        const year = parts[0];
-        const m = months[parseInt(parts[1], 10) - 1] || parts[1];
-        const d = parseInt(parts[2], 10);
-        return `${d}/${m}/${year}`;
-      }
-      return dStr;
-    };
+    const formatDateObj = (dStr: string) => formatDateDMonthY(dStr);
 
     if (start && end) {
       return `${formatDateObj(start)} sd. ${formatDateObj(end)}`;
     }
 
-    // Jika data disimpan dari notes sebelumnya yang formatnya "2/11 sd. 7/11" atau "02/11 - 07/11"
+    // Jika data disimpan dari notes sebelumnya
     if (existingNotes) {
       const year = (itemDate ? itemDate.split("-")[0] : null) || "2026";
       const match = existingNotes.match(/(\d{1,2})\/(\d{1,2})\s*(?:sd\.?|-)\s*(\d{1,2})\/(\d{1,2})/i);

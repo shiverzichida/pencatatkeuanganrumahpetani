@@ -20,6 +20,59 @@ export const formatDateIndo = (dateStr: string): string => {
   }
 };
 
+/**
+ * Format tanggal standar ringkas: "2/Nov/2026"
+ * Menangani string ISO, Date string Google Sheets ("Sat Nov 07 2026..."), YYYY-MM-DD, DD/MM/YYYY, dll.
+ */
+export const formatDateDMonthY = (dStr?: string): string => {
+  if (!dStr) return "-";
+  const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+  // 1. Cek format YYYY-MM-DD (e.g. 2026-11-02)
+  const dashParts = dStr.split("-");
+  if (dashParts.length === 3 && dashParts[0].length === 4) {
+    const year = dashParts[0];
+    const m = months[parseInt(dashParts[1], 10) - 1] || dashParts[1];
+    const d = parseInt(dashParts[2], 10);
+    return `${d}/${m}/${year}`;
+  }
+
+  // 2. Cek format DD/MM/YYYY atau DD/Mmm/YYYY
+  const slashParts = dStr.split("/");
+  if (slashParts.length === 3) {
+    const d = parseInt(slashParts[0], 10);
+    if (isNaN(Number(slashParts[1]))) {
+      // Sudah berupa "2/Nov/2026"
+      return `${d}/${slashParts[1]}/${slashParts[2]}`;
+    }
+    const m = months[parseInt(slashParts[1], 10) - 1] || slashParts[1];
+    const year = slashParts[2];
+    return `${d}/${m}/${year}`;
+  }
+
+  // 3. Cek format DD/MM ringkas (misal: "7/11" atau "02/11")
+  if (slashParts.length === 2 && !isNaN(Number(slashParts[0])) && !isNaN(Number(slashParts[1]))) {
+    const d = parseInt(slashParts[0], 10);
+    const m = months[parseInt(slashParts[1], 10) - 1] || slashParts[1];
+    return `${d}/${m}/2026`;
+  }
+
+  // 4. Parse string Date umum (e.g. "Sat Nov 07 2026 00:00:00 GMT+0700 (Western Indonesia Time)" atau ISO)
+  try {
+    const parsed = new Date(dStr);
+    if (!isNaN(parsed.getTime())) {
+      const d = parsed.getDate();
+      const m = months[parsed.getMonth()];
+      const year = parsed.getFullYear();
+      return `${d}/${m}/${year}`;
+    }
+  } catch {
+    // Abaikan jika gagal parse Date
+  }
+
+  return dStr;
+};
+
 export function angkaTerbilang(nilai: number): string {
   const huruf = [
     "",

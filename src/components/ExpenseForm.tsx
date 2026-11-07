@@ -115,6 +115,12 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setIsLaborMode(true);
       updateLaborFields(laborWeekNo, laborStartDate, laborEndDate, laborWorkerCount, laborRatePerWorker);
       if (!vendor) setVendor("Mandor / Kepala Tukang");
+    } else if (newCat === "Jasa Tukang Lainnya") {
+      setIsLaborMode(false);
+      setUnit("hari");
+      setUnitPrice(150000);
+      setQty(1);
+      if (!vendor) setVendor("Tukang Harian / Spesialis");
     } else {
       setIsLaborMode(false);
       setUnit("btg");

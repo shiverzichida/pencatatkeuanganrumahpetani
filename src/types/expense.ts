@@ -31,6 +31,7 @@ export interface BudgetCategory {
 
 export const CATEGORIES = [
   "Jasa Tukang Borongan",
+  "Jasa Tukang Lainnya",
   "Material Struktur Bawah & Pondasi",
   "Material Struktur Atas & Dak Beton",
   "Material Pasangan Dinding & Partisi",
@@ -42,6 +43,7 @@ export const CATEGORIES = [
 
 export const DEFAULT_BUDGETS: BudgetCategory[] = [
   { category: "Jasa Tukang Borongan", budget: 110000000, pessimistic: 110000000 },
+  { category: "Jasa Tukang Lainnya", budget: 10000000, pessimistic: 12000000 },
   { category: "Material Struktur Bawah & Pondasi", budget: 47500000, pessimistic: 52250000 },
   { category: "Material Struktur Atas & Dak Beton", budget: 62500000, pessimistic: 68750000 },
   { category: "Material Pasangan Dinding & Partisi", budget: 42500000, pessimistic: 46750000 },

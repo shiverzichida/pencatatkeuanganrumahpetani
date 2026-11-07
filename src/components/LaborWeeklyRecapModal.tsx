@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { X, Printer, Hammer, Users, Calendar, PlusCircle, CheckCircle, ArrowRight, ShieldCheck, Inbox } from "lucide-react";
 import { ExpenseItem } from "@/types/expense";
-import { formatRupiah, formatDateIndo } from "@/lib/utils";
+import { formatRupiah, formatDateIndo, formatDateDMonthY } from "@/lib/utils";
 
 interface LaborWeeklyRecapModalProps {
   isOpen: boolean;
@@ -26,37 +26,7 @@ export interface LaborRow {
   paymentDate: string;
 }
 
-export const formatDMonthY = (dStr?: string) => {
-  if (!dStr) return "-";
-  const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-
-  // Jika format YYYY-MM-DD
-  const parts = dStr.split("-");
-  if (parts.length === 3) {
-    const year = parts[0];
-    const m = months[parseInt(parts[1], 10) - 1] || parts[1];
-    const d = parseInt(parts[2], 10);
-    return `${d}/${m}/${year}`;
-  }
-
-  // Jika format DD/MM/YYYY
-  const slashParts = dStr.split("/");
-  if (slashParts.length === 3) {
-    const d = parseInt(slashParts[0], 10);
-    const m = months[parseInt(slashParts[1], 10) - 1] || slashParts[1];
-    const year = slashParts[2];
-    return `${d}/${m}/${year}`;
-  }
-
-  // Jika format DD/MM ringkas (misal: "7/11" atau "14/11")
-  if (slashParts.length === 2) {
-    const d = parseInt(slashParts[0], 10);
-    const m = months[parseInt(slashParts[1], 10) - 1] || slashParts[1];
-    return `${d}/${m}/2026`;
-  }
-
-  return dStr;
-};
+export const formatDMonthY = formatDateDMonthY;
 
 export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
   isOpen,
@@ -110,19 +80,41 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
       // Coba ekstrak rentang tanggal dari notes jika belum ada
       if (!start && item.notes) {
         // Coba format 2/Nov/2026 sd. 7/Nov/2026
-        const matchMonthName = item.notes.match(/(\d{1,2})\/([a-zA-Z]{3})\/(\d{4})\s*(?:sd\.?|-)\s*(\d{1,2})\/([a-zA-Z]{3})\/(\d{4})/i);
+        const matchMonthName = item.notes.match(/(\d{1,2})\/([a-zA-Z]{3})\/(\d{4})\s*(?:sd\.?|s\.d\.?|-|sampai)\s*(\d{1,2})\/([a-zA-Z]{3})\/(\d{4})/i);
         if (matchMonthName) {
           const m1 = months.findIndex((m) => m.toLowerCase() === matchMonthName[2].toLowerCase()) + 1;
           const m2 = months.findIndex((m) => m.toLowerCase() === matchMonthName[5].toLowerCase()) + 1;
-          start = `${matchMonthName[3]}-${String(m1).padStart(2, "0")}-${matchMonthName[1].padStart(2, "0")}`;
-          end = `${matchMonthName[6]}-${String(m2).padStart(2, "0")}-${matchMonthName[4].padStart(2, "0")}`;
+          start = `${matchMonthName[3]}-${String(m1).padStart(2, "0")}-${String(matchMonthName[1]).padStart(2, "0")}`;
+          end = `${matchMonthName[6]}-${String(m2).padStart(2, "0")}-${String(matchMonthName[4]).padStart(2, "0")}`;
         } else {
-          // Format 2/11 sd. 7/11
-          const matchRange = item.notes.match(/(\d{1,2})\/(\d{1,2})\s*(?:sd\.?|-)\s*(\d{1,2})\/(\d{1,2})/i);
-          if (matchRange) {
-            start = `2026-${matchRange[2].padStart(2, "0")}-${matchRange[1].padStart(2, "0")}`;
-            end = `2026-${matchRange[4].padStart(2, "0")}-${matchRange[3].padStart(2, "0")}`;
+          // Format 02/11/2026 sd. 07/11/2026
+          const matchFullDate = item.notes.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(?:sd\.?|s\.d\.?|-|sampai)\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/i);
+          if (matchFullDate) {
+            start = `${matchFullDate[3]}-${String(matchFullDate[2]).padStart(2, "0")}-${String(matchFullDate[1]).padStart(2, "0")}`;
+            end = `${matchFullDate[6]}-${String(matchFullDate[5]).padStart(2, "0")}-${String(matchFullDate[4]).padStart(2, "0")}`;
+          } else {
+            // Format 2/11 sd. 7/11
+            const matchRange = item.notes.match(/(\d{1,2})\/(\d{1,2})\s*(?:sd\.?|s\.d\.?|-|sampai)\s*(\d{1,2})\/(\d{1,2})/i);
+            if (matchRange) {
+              start = `2026-${String(matchRange[2]).padStart(2, "0")}-${String(matchRange[1]).padStart(2, "0")}`;
+              end = `2026-${String(matchRange[4]).padStart(2, "0")}-${String(matchRange[3]).padStart(2, "0")}`;
+            }
           }
+        }
+      }
+
+      // Jika start masih kosong dan item.date valid, infer periode kerja 6 hari (Senin s/d Sabtu)
+      if (!start && item.date) {
+        try {
+          const endDateObj = new Date(item.date);
+          if (!isNaN(endDateObj.getTime())) {
+            const startDateObj = new Date(endDateObj.getTime() - 5 * 24 * 60 * 60 * 1000);
+            start = startDateObj.toISOString().split("T")[0];
+            end = endDateObj.toISOString().split("T")[0];
+          }
+        } catch {
+          start = item.date;
+          end = item.date;
         }
       }
 
