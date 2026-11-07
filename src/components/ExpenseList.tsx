@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { formatRupiah, formatDateIndo } from "@/lib/utils";
-import { Search, Filter, Trash2, Edit3, ExternalLink, Calendar, Store, Tag, Clock, CheckCircle } from "lucide-react";
+import { Search, Filter, Trash2, Edit3, ExternalLink, Calendar, Store, Tag, Clock, CheckCircle, Printer } from "lucide-react";
 import { CATEGORIES, ExpenseItem } from "@/types/expense";
+import { ReceiptModal } from "./ReceiptModal";
 
 interface ExpenseListProps {
   expenses: ExpenseItem[];
@@ -24,6 +25,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState<"ALL" | "Lunas" | "Bon">("ALL");
   const [activeReceiptModal, setActiveReceiptModal] = useState<string | null>(null);
+  const [selectedKuitansiItem, setSelectedKuitansiItem] = useState<ExpenseItem | null>(null);
 
   // Summary Bon / Tempo
   const totalUnpaid = expenses
@@ -186,6 +188,15 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1">
+                    {/* Tombol Cetak Kuitansi PDF */}
+                    <button
+                      onClick={() => setSelectedKuitansiItem(exp)}
+                      className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/15 rounded-lg transition-colors cursor-pointer"
+                      title="Cetak Kuitansi Resmi (PDF)"
+                    >
+                      <Printer className="w-4 h-4" />
+                    </button>
+
                     {exp.receiptUrl && (
                       <button
                         onClick={() => setActiveReceiptModal(exp.receiptUrl || null)}
@@ -246,6 +257,14 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Modal Cetak Kuitansi Resmi PDF */}
+        {selectedKuitansiItem && (
+          <ReceiptModal
+            item={selectedKuitansiItem}
+            onClose={() => setSelectedKuitansiItem(null)}
+          />
         )}
       </div>
     </div>
