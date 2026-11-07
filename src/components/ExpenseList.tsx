@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { formatRupiah, formatDateIndo } from "@/lib/utils";
-import { Search, Filter, Trash2, Edit3, ExternalLink, Calendar, Store, Tag, Clock, CheckCircle, Printer } from "lucide-react";
+import { Search, Filter, Trash2, Edit3, ExternalLink, Calendar, Store, Tag, Clock, CheckCircle, Printer, ArrowUpDown } from "lucide-react";
 import { CATEGORIES, ExpenseItem } from "@/types/expense";
 import { ReceiptModal } from "./ReceiptModal";
 
@@ -24,6 +24,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [selectedStatus, setSelectedStatus] = useState<"ALL" | "Lunas" | "Bon">("ALL");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc"); // Default: Tanggal Terbaru ke Terlama
   const [activeReceiptModal, setActiveReceiptModal] = useState<string | null>(null);
   const [selectedKuitansiItem, setSelectedKuitansiItem] = useState<ExpenseItem | null>(null);
 
@@ -43,6 +44,18 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
       (selectedStatus === "Bon" && item.paymentStatus === "Bon / Tempo") ||
       (selectedStatus === "Lunas" && (item.paymentStatus === "Lunas" || !item.paymentStatus));
     return matchSearch && matchCategory && matchStatus;
+  });
+
+  // Sort by date (Terbaru ke Terlama / Terlama ke Terbaru)
+  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
+    const timeA = new Date(a.date).getTime() || 0;
+    const timeB = new Date(b.date).getTime() || 0;
+    if (timeA !== timeB) {
+      return sortOrder === "desc" ? timeB - timeA : timeA - timeB;
+    }
+    return sortOrder === "desc"
+      ? (b.id || "").localeCompare(a.id || "")
+      : (a.id || "").localeCompare(b.id || "");
   });
 
   return (
@@ -83,7 +96,17 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+            {/* Sort Order Toggle */}
+            <button
+              onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+              className="text-xs py-2 px-2.5 glass-input rounded-xl focus:outline-none flex items-center gap-1.5 text-slate-200 hover:text-white transition-all cursor-pointer bg-slate-900 border border-slate-700 hover:border-emerald-500/50"
+              title={sortOrder === "desc" ? "Urutan: Tanggal Terbaru ke Terlama (Klik untuk balik)" : "Urutan: Tanggal Terlama ke Terbaru (Klik untuk balik)"}
+            >
+              <ArrowUpDown className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-semibold">{sortOrder === "desc" ? "Terbaru" : "Terlama"}</span>
+            </button>
+
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as any)}
@@ -110,13 +133,13 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
         </div>
 
         {/* List Item */}
-        {filteredExpenses.length === 0 ? (
+        {sortedExpenses.length === 0 ? (
           <div className="p-12 text-center text-slate-500 text-xs sm:text-sm">
             Belum ada catatan pengeluaran yang cocok.
           </div>
         ) : (
           <div className="divide-y divide-white/5">
-            {filteredExpenses.map((exp) => (
+            {sortedExpenses.map((exp) => (
               <div
                 key={exp.id}
                 className="p-3.5 sm:p-4 hover:bg-white/[0.02] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
