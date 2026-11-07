@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { X, Printer, Hammer, Users, Calendar, AlertCircle, PlusCircle, CheckCircle, ArrowRight, ShieldCheck } from "lucide-react";
+import { X, Printer, Hammer, Users, Calendar, PlusCircle, CheckCircle, ArrowRight, ShieldCheck, Inbox } from "lucide-react";
 import { ExpenseItem } from "@/types/expense";
 import { formatRupiah, formatDateIndo } from "@/lib/utils";
 
@@ -11,21 +11,19 @@ interface LaborWeeklyRecapModalProps {
   expenses: ExpenseItem[];
   onAddNewWeek?: (suggestedWeek: number) => void;
   onPrintKJ?: (item: ExpenseItem) => void;
-  onSaveSampleData?: (sampleItems: Omit<ExpenseItem, "id" | "createdAt">[]) => void;
 }
 
 export interface LaborRow {
   id?: string;
   originalItem?: ExpenseItem;
   weekNo: number;
-  startDate: string; // YYYY-MM-DD or formatted
-  endDate: string;   // YYYY-MM-DD or formatted
+  startDate: string;
+  endDate: string;
   workerCount: number;
   ratePerWorker: number;
   totalWage: number;
   cumulativePayment: number;
   paymentDate: string;
-  isSample?: boolean;
 }
 
 export const formatDMonthY = (dStr?: string) => {
@@ -66,13 +64,11 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
   expenses,
   onAddNewWeek,
   onPrintKJ,
-  onSaveSampleData,
 }) => {
-  const [contractValue, setContractValue] = useState<number>(110000000); // Rp 110.000.000,-
-  const [useSampleIfEmpty, setUseSampleIfEmpty] = useState<boolean>(true);
+  const [contractValue, setContractValue] = useState<number>(110000000); // Rp 110.000.000,- (Default Kontrak Tukang)
 
-  // Parse semua transaksi yang berhubungan dengan upah tukang
-  const { rows, totalWagePaid, nextSuggestedWeek, hasRealData } = useMemo(() => {
+  // 100% patokan ke data input riil yang ada di database / expenses
+  const { rows, totalWagePaid, nextSuggestedWeek } = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
     const laborItems = expenses.filter((e) => {
@@ -80,66 +76,53 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
         e.category === "Jasa Tukang Borongan" ||
         Boolean(e.laborDetails) ||
         (e.itemName && e.itemName.toLowerCase().includes("upah")) ||
+        (e.itemName && e.itemName.toLowerCase().includes("tukang")) ||
         (e.notes && e.notes.toLowerCase().includes("pekan")) ||
         e.unit === "pekerja"
       );
     });
 
-    if (laborItems.length === 0 && useSampleIfEmpty) {
-      // Sesuai data spreadsheet user: Pekan #1 dan Pekan #2 (Cell G7 harus Rp 9.000.000)
-      const sampleRows: LaborRow[] = [
-        {
-          weekNo: 1,
-          startDate: "2026-11-02",
-          endDate: "2026-11-07",
-          workerCount: 3,
-          ratePerWorker: 1000000,
-          totalWage: 3000000,
-          cumulativePayment: 3000000, // Baris 1
-          paymentDate: "2026-11-07",
-          isSample: true,
-        },
-        {
-          weekNo: 2,
-          startDate: "2026-11-09",
-          endDate: "2026-11-14",
-          workerCount: 6,
-          ratePerWorker: 1000000,
-          totalWage: 6000000,
-          cumulativePayment: 9000000, // Baris 2 (CELL G7 = Rp 9.000.000)
-          paymentDate: "2026-11-14",
-          isSample: true,
-        },
-      ];
-
+    if (laborItems.length === 0) {
       return {
-        rows: sampleRows,
-        totalWagePaid: 9000000,
-        nextSuggestedWeek: 3,
-        hasRealData: false,
+        rows: [],
+        totalWagePaid: 0,
+        nextSuggestedWeek: 1,
       };
     }
 
-    // Sort items by weekNo or date ascending
+    // Parse data dari setiap item pengeluaran riil
     const parsed: { item: ExpenseItem; weekNo: number; startDate: string; endDate: string; workers: number; rate: number }[] = [];
 
     laborItems.forEach((item, idx) => {
       let week = item.laborDetails?.weekNo;
       let start = item.laborDetails?.startDate || "";
       let end = item.laborDetails?.endDate || "";
-      let workers = item.laborDetails?.workerCount || item.qty || 3;
-      let rate = item.laborDetails?.ratePerWorker || item.unitPrice || 1000000;
+      let workers = item.laborDetails?.workerCount || item.qty || 1;
+      let rate = item.laborDetails?.ratePerWorker || item.unitPrice || item.totalPrice;
 
-      // Coba ekstrak dari notes jika belum ada laborDetails
-      if (!week && item.notes) {
-        const matchWeek = item.notes.match(/pekan ke-(\d+)/i);
+      // Coba ekstrak nomor pekan dari notes atau itemName jika belum ada di laborDetails
+      if (!week) {
+        const textToSearch = `${item.notes || ""} ${item.itemName || ""}`;
+        const matchWeek = textToSearch.match(/pekan\s*(?:ke-|#|\s)(\d+)/i);
         if (matchWeek) week = parseInt(matchWeek[1], 10);
       }
+
+      // Coba ekstrak rentang tanggal dari notes jika belum ada
       if (!start && item.notes) {
-        const matchRange = item.notes.match(/(\d{1,2})\/(\d{1,2})\s*(?:sd\.?|-)\s*(\d{1,2})\/(\d{1,2})/i);
-        if (matchRange) {
-          start = `2026-${matchRange[2].padStart(2, "0")}-${matchRange[1].padStart(2, "0")}`;
-          end = `2026-${matchRange[4].padStart(2, "0")}-${matchRange[3].padStart(2, "0")}`;
+        // Coba format 2/Nov/2026 sd. 7/Nov/2026
+        const matchMonthName = item.notes.match(/(\d{1,2})\/([a-zA-Z]{3})\/(\d{4})\s*(?:sd\.?|-)\s*(\d{1,2})\/([a-zA-Z]{3})\/(\d{4})/i);
+        if (matchMonthName) {
+          const m1 = months.findIndex((m) => m.toLowerCase() === matchMonthName[2].toLowerCase()) + 1;
+          const m2 = months.findIndex((m) => m.toLowerCase() === matchMonthName[5].toLowerCase()) + 1;
+          start = `${matchMonthName[3]}-${String(m1).padStart(2, "0")}-${matchMonthName[1].padStart(2, "0")}`;
+          end = `${matchMonthName[6]}-${String(m2).padStart(2, "0")}-${matchMonthName[4].padStart(2, "0")}`;
+        } else {
+          // Format 2/11 sd. 7/11
+          const matchRange = item.notes.match(/(\d{1,2})\/(\d{1,2})\s*(?:sd\.?|-)\s*(\d{1,2})\/(\d{1,2})/i);
+          if (matchRange) {
+            start = `2026-${matchRange[2].padStart(2, "0")}-${matchRange[1].padStart(2, "0")}`;
+            end = `2026-${matchRange[4].padStart(2, "0")}-${matchRange[3].padStart(2, "0")}`;
+          }
         }
       }
 
@@ -153,8 +136,10 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
       });
     });
 
+    // Urutkan dari Pekan awal ke Pekan akhir (#1, #2, dst.)
     parsed.sort((a, b) => a.weekNo - b.weekNo || new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
+    // Hitung akumulasi pembayaran berjalan (running sum)
     let runningSum = 0;
     const finalRows: LaborRow[] = parsed.map((p) => {
       const wage = Number(p.item.totalPrice) || p.workers * p.rate;
@@ -168,9 +153,8 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
         workerCount: p.workers,
         ratePerWorker: p.rate,
         totalWage: wage,
-        cumulativePayment: runningSum,
+        cumulativePayment: runningSum, // Running sum murni dari data input
         paymentDate: p.item.date,
-        isSample: false,
       };
     });
 
@@ -180,9 +164,8 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
       rows: finalRows,
       totalWagePaid: runningSum,
       nextSuggestedWeek: maxWeek + 1,
-      hasRealData: true,
     };
-  }, [expenses, useSampleIfEmpty]);
+  }, [expenses]);
 
   if (!isOpen) return null;
 
@@ -208,22 +191,31 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
     const frameDoc = printFrame.contentWindow?.document;
     if (!frameDoc) return;
 
-    const rowsHtml = rows
-      .map(
-        (r) => `
-        <tr>
-          <td style="text-align: center; font-weight: bold;">Pekan #${r.weekNo}</td>
-          <td style="text-align: center;">${formatDMonthY(r.startDate)}</td>
-          <td style="text-align: center;">${formatDMonthY(r.endDate)}</td>
-          <td style="text-align: center;">${r.workerCount}</td>
-          <td style="text-align: right; font-family: monospace;">${formatRupiah(r.ratePerWorker).replace("Rp ", "")}</td>
-          <td style="text-align: right; font-family: monospace; font-weight: bold;">${formatRupiah(r.totalWage).replace("Rp ", "")}</td>
-          <td style="text-align: right; font-family: monospace; font-weight: 900; background: #f8fafc;">${formatRupiah(r.cumulativePayment).replace("Rp ", "")}</td>
-          <td style="text-align: center; font-weight: bold;">${formatDMonthY(r.paymentDate)}</td>
-        </tr>
-      `
-      )
-      .join("");
+    const rowsHtml =
+      rows.length > 0
+        ? rows
+            .map(
+              (r) => `
+          <tr>
+            <td style="text-align: center; font-weight: bold;">Pekan #${r.weekNo}</td>
+            <td style="text-align: center;">${formatDMonthY(r.startDate)}</td>
+            <td style="text-align: center;">${formatDMonthY(r.endDate)}</td>
+            <td style="text-align: center;">${r.workerCount}</td>
+            <td style="text-align: right; font-family: monospace;">${formatRupiah(r.ratePerWorker).replace("Rp ", "")}</td>
+            <td style="text-align: right; font-family: monospace; font-weight: bold;">${formatRupiah(r.totalWage).replace("Rp ", "")}</td>
+            <td style="text-align: right; font-family: monospace; font-weight: 900; background: #f8fafc;">${formatRupiah(r.cumulativePayment).replace("Rp ", "")}</td>
+            <td style="text-align: center; font-weight: bold;">${formatDMonthY(r.paymentDate)}</td>
+          </tr>
+        `
+            )
+            .join("")
+        : `
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 25px; color: #64748b;">
+              Belum ada riwayat pembayaran upah tukang yang tercatat.
+            </td>
+          </tr>
+        `;
 
     const recapHtml = `
       <!DOCTYPE html>
@@ -448,53 +440,6 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
     }, 250);
   };
 
-  // Simpan data contoh (Pekan #1 & Pekan #2) ke database permanen jika diminta
-  const handleApplySampleToDatabase = () => {
-    if (!onSaveSampleData) return;
-    const sampleItems: Omit<ExpenseItem, "id" | "createdAt">[] = [
-      {
-        date: "2026-11-07",
-        category: "Jasa Tukang Borongan",
-        itemName: "Upah tenaga kerja pembangunan rumah",
-        qty: 3,
-        unit: "pekerja",
-        unitPrice: 1000000,
-        totalPrice: 3000000,
-        vendor: "Mandor / Kepala Tukang",
-        paymentStatus: "Lunas",
-        notes: "Pekan ke-1 (2/Nov/2026 sd. 7/Nov/2026) • 3 pekerja x Rp 1.000.000",
-        laborDetails: {
-          weekNo: 1,
-          startDate: "2026-11-02",
-          endDate: "2026-11-07",
-          workerCount: 3,
-          ratePerWorker: 1000000,
-        },
-      },
-      {
-        date: "2026-11-14",
-        category: "Jasa Tukang Borongan",
-        itemName: "Upah tenaga kerja pembangunan rumah",
-        qty: 6,
-        unit: "pekerja",
-        unitPrice: 1000000,
-        totalPrice: 6000000,
-        vendor: "Mandor / Kepala Tukang",
-        paymentStatus: "Lunas",
-        notes: "Pekan ke-2 (9/Nov/2026 sd. 14/Nov/2026) • 6 pekerja x Rp 1.000.000",
-        laborDetails: {
-          weekNo: 2,
-          startDate: "2026-11-09",
-          endDate: "2026-11-14",
-          workerCount: 6,
-          ratePerWorker: 1000000,
-        },
-      },
-    ];
-
-    onSaveSampleData(sampleItems);
-  };
-
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto">
       <div className="bg-[#0b101d] text-slate-100 border border-slate-800 rounded-3xl max-w-5xl w-full shadow-2xl overflow-hidden my-auto flex flex-col max-h-[94vh]">
@@ -511,7 +456,7 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
                   Rekapitulasi Pembayaran Mingguan Jasa Bangun
                 </h3>
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  KJ Spreadsheet
+                  Data Riil ({rows.length} Pekan)
                 </span>
               </div>
               <p className="text-xs text-slate-400">
@@ -536,7 +481,8 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
 
             <button
               onClick={handlePrintRecap}
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition-all"
+              disabled={rows.length === 0}
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-100 border border-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition-all"
               title="Cetak format cetak A4 / PDF"
             >
               <Printer className="w-4 h-4 text-emerald-400" />
@@ -555,32 +501,6 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
         {/* Content Body: Scrollable */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-5 custom-scrollbar flex-1 bg-slate-950/40">
           
-          {/* Notice jika menampilkan data contoh spreadsheet */}
-          {!hasRealData && (
-            <div className="glass-panel p-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-bold text-amber-200">
-                    Menampilkan Contoh Data Spreadsheet (Pekan #1 & Pekan #2)
-                  </p>
-                  <p className="text-[11px] text-slate-300">
-                    Akumulasi baris ke-2 (Cell G7) tepat <strong>Rp 9.000.000,-</strong> (3 jt + 6 jt) sesuai arahan Anda.
-                  </p>
-                </div>
-              </div>
-              {onSaveSampleData && (
-                <button
-                  onClick={handleApplySampleToDatabase}
-                  className="text-xs px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-xl font-bold cursor-pointer transition-all self-end sm:self-auto flex items-center gap-1"
-                >
-                  <CheckCircle className="w-3.5 h-3.5 text-amber-400" />
-                  Simpan Contoh ke Database
-                </button>
-              )}
-            </div>
-          )}
-
           {/* Spreadsheet Table View */}
           <div className="rounded-2xl border border-slate-700 overflow-hidden bg-[#0c1222] shadow-xl">
             <div className="overflow-x-auto">
@@ -611,52 +531,80 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 font-medium">
-                  {rows.map((row, idx) => (
-                    <tr
-                      key={idx}
-                      className="hover:bg-slate-800/40 transition-colors group text-slate-200"
-                    >
-                      <td className="p-3 text-center font-bold text-amber-400 border-r border-slate-800 whitespace-nowrap">
-                        Pekan #{row.weekNo}
-                      </td>
-                      <td className="p-3 text-center font-mono text-slate-300 border-r border-slate-800 whitespace-nowrap">
-                        {formatDMonthY(row.startDate)}
-                      </td>
-                      <td className="p-3 text-center font-mono text-slate-300 border-r border-slate-800 whitespace-nowrap">
-                        {formatDMonthY(row.endDate)}
-                      </td>
-                      <td className="p-3 text-center font-bold border-r border-slate-800">
-                        {row.workerCount}
-                      </td>
-                      <td className="p-3 text-right font-mono text-slate-300 border-r border-slate-800 whitespace-nowrap">
-                        {formatRupiah(row.ratePerWorker).replace("Rp ", "")}
-                      </td>
-                      <td className="p-3 text-right font-mono font-bold text-white border-r border-slate-800 whitespace-nowrap">
-                        {formatRupiah(row.totalWage).replace("Rp ", "")}
-                      </td>
-                      {/* Cell G: Akumulasi Pembayaran (Cell G7 di baris ke-2 bernilai 9 jt) */}
-                      <td className="p-3 text-right font-mono font-black text-amber-300 border-r border-slate-800 bg-amber-500/5 whitespace-nowrap text-sm">
-                        {formatRupiah(row.cumulativePayment).replace("Rp ", "")}
-                      </td>
-                      <td className="p-3 text-center font-mono text-slate-300 border-r border-slate-800 whitespace-nowrap">
-                        {formatDMonthY(row.paymentDate)}
-                      </td>
-                      <td className="p-2.5 text-center whitespace-nowrap">
-                        {row.originalItem && onPrintKJ ? (
-                          <button
-                            onClick={() => onPrintKJ(row.originalItem!)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-slate-700 hover:border-emerald-500/40 rounded-lg text-[11px] font-bold flex items-center gap-1 mx-auto transition-colors cursor-pointer"
-                            title="Cetak Kuitansi KJ Pekan Ini"
-                          >
-                            <Printer className="w-3 h-3 text-emerald-400" />
-                            <span>KJ-{String(row.weekNo).padStart(3, "0")}</span>
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-slate-500 italic">KJ-{String(row.weekNo).padStart(3, "0")}</span>
-                        )}
+                  {rows.length > 0 ? (
+                    rows.map((row, idx) => (
+                      <tr
+                        key={row.id || idx}
+                        className="hover:bg-slate-800/40 transition-colors group text-slate-200"
+                      >
+                        <td className="p-3 text-center font-bold text-amber-400 border-r border-slate-800 whitespace-nowrap">
+                          Pekan #{row.weekNo}
+                        </td>
+                        <td className="p-3 text-center font-mono text-slate-300 border-r border-slate-800 whitespace-nowrap">
+                          {formatDMonthY(row.startDate)}
+                        </td>
+                        <td className="p-3 text-center font-mono text-slate-300 border-r border-slate-800 whitespace-nowrap">
+                          {formatDMonthY(row.endDate)}
+                        </td>
+                        <td className="p-3 text-center font-bold border-r border-slate-800">
+                          {row.workerCount}
+                        </td>
+                        <td className="p-3 text-right font-mono text-slate-300 border-r border-slate-800 whitespace-nowrap">
+                          {formatRupiah(row.ratePerWorker).replace("Rp ", "")}
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-white border-r border-slate-800 whitespace-nowrap">
+                          {formatRupiah(row.totalWage).replace("Rp ", "")}
+                        </td>
+                        {/* Akumulasi Pembayaran: Running sum murni dari data input */}
+                        <td className="p-3 text-right font-mono font-black text-amber-300 border-r border-slate-800 bg-amber-500/5 whitespace-nowrap text-sm">
+                          {formatRupiah(row.cumulativePayment).replace("Rp ", "")}
+                        </td>
+                        <td className="p-3 text-center font-mono text-slate-300 border-r border-slate-800 whitespace-nowrap">
+                          {formatDMonthY(row.paymentDate)}
+                        </td>
+                        <td className="p-2.5 text-center whitespace-nowrap">
+                          {row.originalItem && onPrintKJ ? (
+                            <button
+                              onClick={() => onPrintKJ(row.originalItem!)}
+                              className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-slate-700 hover:border-emerald-500/40 rounded-lg text-[11px] font-bold flex items-center gap-1 mx-auto transition-colors cursor-pointer"
+                              title="Cetak Kuitansi KJ Pekan Ini"
+                            >
+                              <Printer className="w-3 h-3 text-emerald-400" />
+                              <span>KJ-{String(row.weekNo).padStart(3, "0")}</span>
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 italic">KJ-{String(row.weekNo).padStart(3, "0")}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={9} className="p-10 text-center text-slate-400">
+                        <div className="flex flex-col items-center justify-center gap-2 max-w-md mx-auto">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 mb-1">
+                            <Inbox className="w-6 h-6" />
+                          </div>
+                          <h4 className="font-bold text-slate-200 text-sm">Belum Ada Transaksi Upah Tukang</h4>
+                          <p className="text-xs text-slate-400 leading-relaxed">
+                            Tabel ini membaca riwayat transaksi nyata dari pos <em>Jasa Tukang Borongan</em>. Begitu Anda mencatat pembayaran upah, pekan dan akumulasi berjalan akan otomatis terangkum di sini.
+                          </p>
+                          {onAddNewWeek && (
+                            <button
+                              onClick={() => {
+                                onAddNewWeek(1);
+                                onClose();
+                              }}
+                              className="mt-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md hover:brightness-110 cursor-pointer transition-all"
+                            >
+                              <PlusCircle className="w-4 h-4" />
+                              <span>+ Catat Pembayaran Pekan #1 Sekarang</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -735,17 +683,21 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
         {/* Footer Bar */}
         <div className="p-3.5 bg-[#0d1424] border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span className={`w-2 h-2 rounded-full ${rows.length > 0 ? "bg-emerald-400" : "bg-slate-500"}`}></span>
             <span>Total terdaftar: <strong className="text-white">{rows.length} pekan</strong> ({formatRupiah(totalWagePaid)})</span>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrintRecap}
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
-            >
-              <Printer className="w-3.5 h-3.5" /> Cetak Lembar Rekapitulasi
-            </button>
-            <span>•</span>
+            {rows.length > 0 && (
+              <>
+                <button
+                  onClick={handlePrintRecap}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Cetak Lembar Rekapitulasi
+                </button>
+                <span>•</span>
+              </>
+            )}
             <button
               onClick={onClose}
               className="text-xs text-slate-400 hover:text-white cursor-pointer"

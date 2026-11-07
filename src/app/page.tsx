@@ -513,17 +513,6 @@ export default function HomePage() {
         onPrintKJ={(item) => {
           setRecapReceiptItem(item);
         }}
-        onSaveSampleData={(sampleItems) => {
-          const newItems: ExpenseItem[] = sampleItems.map((item, idx) => ({
-            ...item,
-            id: `EXP-LABOR-${new Date().getTime()}-${idx}`,
-            createdAt: new Date().toISOString(),
-          }));
-          const updated = [...newItems, ...expenses];
-          setExpenses(updated);
-          localStorage.setItem("local_expenses", JSON.stringify(updated));
-          showToast("✓ Contoh data Rekapitulasi Mingguan berhasil disimpan ke database!");
-        }}
       />
 
       {/* Modal Kuitansi KJ jika diklik dari tabel rekapitulasi */}
