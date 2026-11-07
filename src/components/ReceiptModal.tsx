@@ -24,19 +24,45 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ item, onClose }) => 
 
   const [receiptType, setReceiptType] = useState<"KJ" | "KW">(isLaborInitial ? "KJ" : "KW");
 
-  // Format rentang tanggal ringkas: e.g. "2/11 sd. 7/11"
-  const formatShortRange = (start?: string, end?: string) => {
-    if (!start || !end) return "";
-    const sParts = start.split("-");
-    const eParts = end.split("-");
-    if (sParts.length === 3 && eParts.length === 3) {
-      const sDay = parseInt(sParts[2], 10);
-      const sMonth = parseInt(sParts[1], 10);
-      const eDay = parseInt(eParts[2], 10);
-      const eMonth = parseInt(eParts[1], 10);
-      return `${sDay}/${sMonth} sd. ${eDay}/${eMonth}`;
+  // Format rentang tanggal rapi: e.g. "2/Nov/2026 sd. 7/Nov/2026"
+  const formatPeriodDisplay = (start?: string, end?: string, existingNotes?: string, itemDate?: string) => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+    const formatDateObj = (dStr: string) => {
+      const parts = dStr.split("-");
+      if (parts.length === 3) {
+        const year = parts[0];
+        const m = months[parseInt(parts[1], 10) - 1] || parts[1];
+        const d = parseInt(parts[2], 10);
+        return `${d}/${m}/${year}`;
+      }
+      return dStr;
+    };
+
+    if (start && end) {
+      return `${formatDateObj(start)} sd. ${formatDateObj(end)}`;
     }
-    return `${start} sd. ${end}`;
+
+    // Jika data disimpan dari notes sebelumnya yang formatnya "2/11 sd. 7/11" atau "02/11 - 07/11"
+    if (existingNotes) {
+      const year = (itemDate ? itemDate.split("-")[0] : null) || "2026";
+      const match = existingNotes.match(/(\d{1,2})\/(\d{1,2})\s*(?:sd\.?|-)\s*(\d{1,2})\/(\d{1,2})/i);
+      if (match) {
+        const d1 = parseInt(match[1], 10);
+        const m1 = months[parseInt(match[2], 10) - 1] || match[2];
+        const d2 = parseInt(match[3], 10);
+        const m2 = months[parseInt(match[4], 10) - 1] || match[4];
+        return `${d1}/${m1}/${year} sd. ${d2}/${m2}/${year}`;
+      }
+      const matchAlready = existingNotes.match(/(\d{1,2}\/[a-zA-Z]{3}\/\d{4}\s*sd\.?\s*\d{1,2}\/[a-zA-Z]{3}\/\d{4})/i);
+      if (matchAlready) {
+        return matchAlready[1];
+      }
+    }
+
+    if (start) return formatDateObj(start);
+    if (end) return formatDateObj(end);
+    return "";
   };
 
   // Editable fields with smart defaults
@@ -68,7 +94,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ item, onClose }) => 
 
   // Data detil tukang
   const weekNo = item.laborDetails?.weekNo || 1;
-  const shortRange = formatShortRange(item.laborDetails?.startDate, item.laborDetails?.endDate);
+  const shortRange = formatPeriodDisplay(item.laborDetails?.startDate, item.laborDetails?.endDate, item.notes, item.date);
   const workerCount = item.laborDetails?.workerCount || item.qty || 3;
   const ratePerWorker = item.laborDetails?.ratePerWorker || item.unitPrice || 1000000;
 
@@ -528,7 +554,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ item, onClose }) => 
                 type="text"
                 value={periodText}
                 onChange={(e) => setPeriodText(e.target.value)}
-                placeholder="Pekan ke-1 (2/11 sd. 7/11)"
+                placeholder="Pekan ke-1 (2/Nov/2026 sd. 7/Nov/2026)"
                 className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200 font-medium focus:border-amber-400"
               />
             </div>

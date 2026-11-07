@@ -89,9 +89,18 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
     let periodStr = "";
     if (start && end) {
-      const s = start.split("-").slice(1).reverse().join("/");
-      const e = end.split("-").slice(1).reverse().join("/");
-      periodStr = `${s} sd. ${e}`;
+      const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+      const formatLaborDate = (dStr: string) => {
+        const parts = dStr.split("-");
+        if (parts.length === 3) {
+          const year = parts[0];
+          const m = months[parseInt(parts[1], 10) - 1] || parts[1];
+          const d = parseInt(parts[2], 10);
+          return `${d}/${m}/${year}`;
+        }
+        return dStr;
+      };
+      periodStr = `${formatLaborDate(start)} sd. ${formatLaborDate(end)}`;
     }
     setNotes(
       `Pekan ke-${week}${periodStr ? ` (${periodStr})` : ""} • ${workers} pekerja x ${formatRupiah(rate)}`
