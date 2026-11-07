@@ -6,8 +6,10 @@ import { BudgetSummary } from "@/components/BudgetSummary";
 import { ExpenseList } from "@/components/ExpenseList";
 import { SettingsModal } from "@/components/SettingsModal";
 import { MaterialCalculatorModal } from "@/components/MaterialCalculatorModal";
+import { LaborWeeklyRecapModal } from "@/components/LaborWeeklyRecapModal";
+import { ReceiptModal } from "@/components/ReceiptModal";
 import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES } from "@/types/expense";
-import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered, CheckCircle2 } from "lucide-react";
+import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered, CheckCircle2, Hammer, ClipboardList } from "lucide-react";
 
 export const DEFAULT_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwIJPWHwKL36YxZ6mPNo6gS8Rwu_mBOxT5qoB5to0l0AJV4qZLrZWoo4QmbzYxXHRuU_w/exec";
@@ -19,12 +21,16 @@ export default function HomePage() {
   const [scriptUrl, setScriptUrl] = useState<string>(DEFAULT_SCRIPT_URL);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isCalcOpen, setIsCalcOpen] = useState<boolean>(false);
+  const [isLaborRecapOpen, setIsLaborRecapOpen] = useState<boolean>(false);
+  const [recapReceiptItem, setRecapReceiptItem] = useState<ExpenseItem | null>(null);
   const [prefillData, setPrefillData] = useState<{
     category?: string;
     itemName?: string;
     qty?: number;
     unit?: string;
     unitPrice?: number;
+    notes?: string;
+    weekNo?: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<"synced" | "local" | "syncing" | "error">("syncing");
@@ -284,6 +290,17 @@ export default function HomePage() {
               </button>
             )}
 
+            {/* Tombol Rekap Upah Tukang (KJ) */}
+            <button
+              onClick={() => setIsLaborRecapOpen(true)}
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/35 rounded-xl transition-all cursor-pointer"
+              title="Rekapitulasi Pembayaran Mingguan Jasa Bangun (Spreadsheet)"
+            >
+              <Hammer className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Rekap Upah Tukang</span>
+              <span className="sm:hidden">Rekap KJ</span>
+            </button>
+
             {/* Settings Button */}
             <button
               onClick={() => setIsSettingsOpen(true)}
@@ -316,7 +333,14 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto">
+          <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+            <button
+              onClick={() => setIsLaborRecapOpen(true)}
+              className="text-xs font-bold px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl transition-colors border border-amber-500/40 flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <ClipboardList className="w-3.5 h-3.5 text-amber-400" />
+              Rekap Mingguan Tukang →
+            </button>
             <button
               onClick={() => setIsSettingsOpen(true)}
               className="text-xs font-medium px-3 py-1.5 glass-card hover:bg-white/[0.08] text-slate-300 rounded-xl transition-colors border border-white/10 flex items-center gap-1.5 cursor-pointer"
@@ -368,7 +392,11 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Budget Summary */}
           <div className={`lg:col-span-7 space-y-6 ${mobileTab !== "dashboard" ? "hidden lg:block" : ""}`}>
-            <BudgetSummary expenses={expenses} budgets={budgets} />
+            <BudgetSummary
+              expenses={expenses}
+              budgets={budgets}
+              onOpenLaborRecap={() => setIsLaborRecapOpen(true)}
+            />
           </div>
 
           {/* Right Column: Expense Form */}
@@ -464,6 +492,47 @@ export default function HomePage() {
         scriptUrl={scriptUrl}
         onSaveUrl={handleSaveScriptUrl}
       />
+
+      {/* Rekapitulasi Pembayaran Mingguan Jasa Bangun (Spreadsheet) Modal */}
+      <LaborWeeklyRecapModal
+        isOpen={isLaborRecapOpen}
+        onClose={() => setIsLaborRecapOpen(false)}
+        expenses={expenses}
+        onAddNewWeek={(nextWeek) => {
+          setPrefillData({
+            category: "Jasa Tukang Borongan",
+            itemName: "Upah tenaga kerja pembangunan rumah",
+            qty: 3,
+            unit: "pekerja",
+            unitPrice: 1000000,
+            weekNo: nextWeek,
+          });
+          setMobileTab("form");
+          window.scrollTo({ top: 120, behavior: "smooth" });
+        }}
+        onPrintKJ={(item) => {
+          setRecapReceiptItem(item);
+        }}
+        onSaveSampleData={(sampleItems) => {
+          const newItems: ExpenseItem[] = sampleItems.map((item, idx) => ({
+            ...item,
+            id: `EXP-LABOR-${new Date().getTime()}-${idx}`,
+            createdAt: new Date().toISOString(),
+          }));
+          const updated = [...newItems, ...expenses];
+          setExpenses(updated);
+          localStorage.setItem("local_expenses", JSON.stringify(updated));
+          showToast("✓ Contoh data Rekapitulasi Mingguan berhasil disimpan ke database!");
+        }}
+      />
+
+      {/* Modal Kuitansi KJ jika diklik dari tabel rekapitulasi */}
+      {recapReceiptItem && (
+        <ReceiptModal
+          item={recapReceiptItem}
+          onClose={() => setRecapReceiptItem(null)}
+        />
+      )}
     </div>
   );
 }

@@ -34,6 +34,8 @@ interface ExpenseFormProps {
     qty?: number;
     unit?: string;
     unitPrice?: number;
+    notes?: string;
+    weekNo?: number;
   } | null;
   isLoading: boolean;
 }
@@ -161,11 +163,20 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
   useEffect(() => {
     if (prefillData) {
-      if (prefillData.category) setCategory(prefillData.category);
+      if (prefillData.category) {
+        setCategory(prefillData.category);
+        if (prefillData.category === "Jasa Tukang Borongan") {
+          setIsLaborMode(true);
+          const w = prefillData.weekNo || 1;
+          setLaborWeekNo(w);
+          if (!vendor) setVendor("Mandor / Kepala Tukang");
+        }
+      }
       if (prefillData.itemName) setItemName(prefillData.itemName);
       if (prefillData.qty !== undefined) setQty(prefillData.qty);
       if (prefillData.unit) setUnit(prefillData.unit);
       if (prefillData.unitPrice !== undefined) setUnitPrice(prefillData.unitPrice);
+      if (prefillData.notes) setNotes(prefillData.notes);
     }
   }, [prefillData]);
 

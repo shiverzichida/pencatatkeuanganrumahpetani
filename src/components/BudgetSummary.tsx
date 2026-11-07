@@ -8,9 +8,10 @@ import { BudgetCategory, ExpenseItem } from "@/types/expense";
 interface BudgetSummaryProps {
   expenses: ExpenseItem[];
   budgets: BudgetCategory[];
+  onOpenLaborRecap?: () => void;
 }
 
-export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets }) => {
+export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets, onOpenLaborRecap }) => {
   const totalSpent = expenses.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
   const totalBudget = budgets.reduce((sum, b) => sum + b.budget, 0);
   const totalPessimistic = budgets.reduce((sum, b) => sum + b.pessimistic, 0);
@@ -187,6 +188,17 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets 
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                   ) : null}
                   {cat.category}
+                  {cat.category === "Jasa Tukang Borongan" && onOpenLaborRecap && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenLaborRecap();
+                      }}
+                      className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/40 transition-colors cursor-pointer"
+                    >
+                      Rekap KJ →
+                    </button>
+                  )}
                 </span>
                 <span className="text-slate-400 flex-shrink-0 text-right">
                   <span className="font-bold text-white">{formatRupiah(cat.spent)}</span>
