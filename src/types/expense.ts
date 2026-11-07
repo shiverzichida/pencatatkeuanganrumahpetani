@@ -1,3 +1,11 @@
+export interface LaborDetails {
+  weekNo?: number;
+  startDate?: string;
+  endDate?: string;
+  workerCount?: number;
+  ratePerWorker?: number;
+}
+
 export interface ExpenseItem {
   id: string;
   date: string;
@@ -11,6 +19,7 @@ export interface ExpenseItem {
   paymentStatus?: "Lunas" | "Bon / Tempo"; // Fitur #3: Status Pelunasan
   notes?: string;
   receiptUrl?: string; // Data URL (Base64) or external link
+  laborDetails?: LaborDetails; // Data Detil Upah Mingguan Tukang
   createdAt?: string;
 }
 

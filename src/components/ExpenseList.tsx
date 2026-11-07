@@ -171,6 +171,11 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
                       <Tag className="w-2.5 h-2.5 text-emerald-400" />
                       {exp.category}
                     </span>
+                    {(exp.laborDetails || exp.category === "Jasa Tukang Borongan") && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                        {exp.laborDetails?.weekNo ? `KJ • Pekan ke-${exp.laborDetails.weekNo}` : "KJ (Kuitansi Jasa)"}
+                      </span>
+                    )}
                     <span className="text-[11px] text-slate-400 flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-slate-500" />
                       {formatDateIndo(exp.date)}

@@ -16,8 +16,9 @@ import {
   Calculator,
   Sparkles,
   CornerDownLeft,
+  Users,
 } from "lucide-react";
-import { CATEGORIES, ExpenseItem } from "@/types/expense";
+import { CATEGORIES, ExpenseItem, LaborDetails } from "@/types/expense";
 import { parseQuickExpense, ParsedQuickExpense } from "@/lib/quickParser";
 import { formatRupiah } from "@/lib/utils";
 
@@ -60,6 +61,57 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const [successMsg, setSuccessMsg] = useState<boolean>(false);
   const [isListening, setIsListening] = useState<boolean>(false);
 
+  // Khusus Upah Tukang (Pekan ke-X, Tanggal A sd B, Pekerja x Gaji)
+  const [isLaborMode, setIsLaborMode] = useState<boolean>(false);
+  const [laborWeekNo, setLaborWeekNo] = useState<number>(1);
+  const [laborStartDate, setLaborStartDate] = useState<string>("");
+  const [laborEndDate, setLaborEndDate] = useState<string>("");
+  const [laborWorkerCount, setLaborWorkerCount] = useState<number>(3);
+  const [laborRatePerWorker, setLaborRatePerWorker] = useState<number>(1000000);
+
+  const updateLaborFields = (
+    week = laborWeekNo,
+    start = laborStartDate,
+    end = laborEndDate,
+    workers = laborWorkerCount,
+    rate = laborRatePerWorker
+  ) => {
+    setLaborWeekNo(week);
+    setLaborStartDate(start);
+    setLaborEndDate(end);
+    setLaborWorkerCount(workers);
+    setLaborRatePerWorker(rate);
+
+    setQty(workers);
+    setUnit("pekerja");
+    setUnitPrice(rate);
+    setItemName(`Upah tenaga kerja pembangunan rumah`);
+
+    let periodStr = "";
+    if (start && end) {
+      const s = start.split("-").slice(1).reverse().join("/");
+      const e = end.split("-").slice(1).reverse().join("/");
+      periodStr = `${s} sd. ${e}`;
+    }
+    setNotes(
+      `Pekan ke-${week}${periodStr ? ` (${periodStr})` : ""} • ${workers} pekerja x ${formatRupiah(rate)}`
+    );
+  };
+
+  const handleCategoryChange = (newCat: string) => {
+    setCategory(newCat);
+    if (newCat === "Jasa Tukang Borongan") {
+      setIsLaborMode(true);
+      updateLaborFields(laborWeekNo, laborStartDate, laborEndDate, laborWorkerCount, laborRatePerWorker);
+      if (!vendor) setVendor("Mandor / Kepala Tukang");
+    } else {
+      setIsLaborMode(false);
+      setUnit("btg");
+      setUnitPrice(29000);
+      setQty(1);
+    }
+  };
+
   useEffect(() => {
     if (editingExpense) {
       setDate(editingExpense.date || "");
@@ -73,6 +125,19 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setNotes(editingExpense.notes || "");
       setReceiptUrl(editingExpense.receiptUrl || "");
       setPreviewImage(editingExpense.receiptUrl || null);
+
+      if (editingExpense.laborDetails || editingExpense.category === "Jasa Tukang Borongan") {
+        setIsLaborMode(true);
+        if (editingExpense.laborDetails) {
+          setLaborWeekNo(editingExpense.laborDetails.weekNo || 1);
+          setLaborStartDate(editingExpense.laborDetails.startDate || "");
+          setLaborEndDate(editingExpense.laborDetails.endDate || "");
+          setLaborWorkerCount(editingExpense.laborDetails.workerCount || editingExpense.qty || 3);
+          setLaborRatePerWorker(editingExpense.laborDetails.ratePerWorker || editingExpense.unitPrice || 1000000);
+        }
+      } else {
+        setIsLaborMode(false);
+      }
     } else {
       setDate(new Date().toISOString().split("T")[0]);
       setItemName("");
@@ -81,6 +146,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setNotes("");
       setReceiptUrl("");
       setPreviewImage(null);
+      setIsLaborMode(false);
     }
   }, [editingExpense]);
 
@@ -186,6 +252,16 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       return;
     }
 
+    const laborData: LaborDetails | undefined = isLaborMode
+      ? {
+          weekNo: laborWeekNo,
+          startDate: laborStartDate,
+          endDate: laborEndDate,
+          workerCount: laborWorkerCount,
+          ratePerWorker: laborRatePerWorker,
+        }
+      : undefined;
+
     if (editingExpense) {
       await onUpdateExpense({
         ...editingExpense,
@@ -200,6 +276,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
         vendor,
         notes,
         receiptUrl,
+        laborDetails: laborData,
       });
       onCancelEdit();
     } else {
@@ -215,6 +292,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
         vendor,
         notes,
         receiptUrl,
+        laborDetails: laborData,
       });
       setItemName("");
       setVendor("");
@@ -317,7 +395,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             </label>
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => handleCategoryChange(e.target.value)}
               className="w-full text-xs sm:text-sm glass-input rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white bg-slate-900"
             >
               {CATEGORIES.map((cat) => (
@@ -328,6 +406,99 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             </select>
           </div>
         </div>
+
+        {/* Panel Khusus Upah Mingguan Tukang (Pekan ke-X, Rentang Tanggal, Qty Pekerja x Gaji) */}
+        {isLaborMode && (
+          <div className="bg-[#0c1324] border border-amber-500/40 rounded-2xl p-3.5 sm:p-4 space-y-3 animate-in fade-in duration-200 shadow-lg">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-amber-400" /> Rincian Gaji / Upah Mingguan Tukang
+                </h4>
+              </div>
+              <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                Kuitansi KJ
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Pekan Pembayaran:
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400 font-bold flex-shrink-0">Pekan ke-</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={laborWeekNo}
+                    onChange={(e) => updateLaborFields(parseInt(e.target.value) || 1)}
+                    className="w-full text-xs sm:text-sm bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-center font-extrabold text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Periode Pekerjaan (Tanggal A sd. B):
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input
+                    type="date"
+                    value={laborStartDate}
+                    onChange={(e) => updateLaborFields(laborWeekNo, e.target.value, laborEndDate)}
+                    className="w-full text-xs bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white focus:outline-none focus:border-amber-400"
+                  />
+                  <input
+                    type="date"
+                    value={laborEndDate}
+                    onChange={(e) => updateLaborFields(laborWeekNo, laborStartDate, e.target.value)}
+                    className="w-full text-xs bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Jumlah Pekerja:
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={laborWorkerCount}
+                  onChange={(e) => updateLaborFields(laborWeekNo, laborStartDate, laborEndDate, parseInt(e.target.value) || 1)}
+                  className="w-full text-xs sm:text-sm bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-center font-extrabold text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Upah / Pekerja (Rp):
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="50000"
+                  value={laborRatePerWorker}
+                  onChange={(e) => updateLaborFields(laborWeekNo, laborStartDate, laborEndDate, laborWorkerCount, parseInt(e.target.value) || 0)}
+                  className="w-full text-xs sm:text-sm bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-right font-bold text-emerald-400 font-mono focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Total Gaji Pekan Ini:
+                </label>
+                <div className="text-xs sm:text-sm font-black text-amber-300 py-1.5 px-3 bg-amber-950/40 border border-amber-500/40 rounded-xl text-right font-mono tabular-nums">
+                  {formatRupiah(laborWorkerCount * laborRatePerWorker)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Row 2: Uraian Barang + Voice-to-Text Button + Quick NLP Parser */}
         <div>
