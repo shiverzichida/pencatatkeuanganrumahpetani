@@ -38,6 +38,7 @@ interface ExpenseFormProps {
     weekNo?: number;
   } | null;
   isLoading: boolean;
+  categories: string[];
 }
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({
@@ -48,6 +49,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   onOpenCalculator,
   prefillData,
   isLoading,
+  categories,
 }) => {
   const [date, setDate] = useState<string>("");
   const [category, setCategory] = useState<string>(CATEGORIES[1]);
@@ -424,7 +426,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               onChange={(e) => handleCategoryChange(e.target.value)}
               className="w-full text-xs sm:text-sm glass-input rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white bg-slate-900"
             >
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <option key={cat} value={cat} className="bg-slate-900 text-white">
                   {cat}
                 </option>

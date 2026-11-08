@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { formatRupiah, formatDateIndo } from "@/lib/utils";
 import { Search, Filter, Trash2, Edit3, ExternalLink, Calendar, Store, Tag, Clock, CheckCircle, Printer, ArrowUpDown } from "lucide-react";
-import { CATEGORIES, ExpenseItem } from "@/types/expense";
+import { ExpenseItem } from "@/types/expense";
 import { ReceiptModal } from "./ReceiptModal";
 
 interface ExpenseListProps {
@@ -12,6 +12,7 @@ interface ExpenseListProps {
   onEditExpense: (expense: ExpenseItem) => void;
   onTogglePaymentStatus?: (expense: ExpenseItem) => void;
   isLoading: boolean;
+  categories: string[];
 }
 
 export const ExpenseList: React.FC<ExpenseListProps> = ({
@@ -20,6 +21,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
   onEditExpense,
   onTogglePaymentStatus,
   isLoading,
+  categories,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
@@ -123,7 +125,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
               className="text-xs py-2 px-3 glass-input rounded-xl focus:outline-none w-full sm:w-auto bg-slate-900 text-white"
             >
               <option value="ALL" className="bg-slate-900">Semua Kategori ({expenses.length})</option>
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <option key={c} value={c} className="bg-slate-900 text-white">
                   {c}
                 </option>

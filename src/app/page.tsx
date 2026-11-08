@@ -8,8 +8,10 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { MaterialCalculatorModal } from "@/components/MaterialCalculatorModal";
 import { LaborWeeklyRecapModal } from "@/components/LaborWeeklyRecapModal";
 import { ReceiptModal } from "@/components/ReceiptModal";
-import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES } from "@/types/expense";
-import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered, CheckCircle2, Hammer, ClipboardList } from "lucide-react";
+import { CategoriesModal } from "@/components/CategoriesModal";
+import { SpendingPieChart } from "@/components/SpendingPieChart";
+import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES, CATEGORIES } from "@/types/expense";
+import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered, CheckCircle2, Hammer, ClipboardList, Sun, Moon, Tags } from "lucide-react";
 
 export const DEFAULT_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwIJPWHwKL36YxZ6mPNo6gS8Rwu_mBOxT5qoB5to0l0AJV4qZLrZWoo4QmbzYxXHRuU_w/exec";
@@ -17,6 +19,9 @@ export const DEFAULT_SCRIPT_URL =
 export default function HomePage() {
   const [expenses, setExpenses] = useState<ExpenseItem[]>(INITIAL_EXPENSES);
   const [budgets, setBudgets] = useState<BudgetCategory[]>(DEFAULT_BUDGETS);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
   const [scriptUrl, setScriptUrl] = useState<string>(DEFAULT_SCRIPT_URL);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
@@ -48,6 +53,17 @@ export default function HomePage() {
 
   // Load initial settings & local data
   useEffect(() => {
+    const savedTheme = localStorage.getItem("app_theme");
+    const savedCategoriesRaw = localStorage.getItem("custom_categories");
+    window.setTimeout(() => {
+      if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
+      try {
+        const savedCategories: unknown = JSON.parse(savedCategoriesRaw || "[]");
+        if (Array.isArray(savedCategories)) setCustomCategories(savedCategories.filter((value): value is string => typeof value === "string"));
+      } catch (error) {
+        console.error("Gagal membaca kategori kustom", error);
+      }
+    }, 0);
     const savedUrl = localStorage.getItem("gapps_script_url") || DEFAULT_SCRIPT_URL;
     setScriptUrl(savedUrl);
 
@@ -64,6 +80,17 @@ export default function HomePage() {
       fetchSpreadsheetData(savedUrl);
     }
   }, []);
+
+  const categories = [...CATEGORIES, ...customCategories.filter((category) => !CATEGORIES.includes(category as typeof CATEGORIES[number]))];
+  const saveCustomCategories = (next: string[]) => {
+    setCustomCategories(next);
+    localStorage.setItem("custom_categories", JSON.stringify(next));
+  };
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("app_theme", next);
+  };
 
   const fetchSpreadsheetData = async (url: string) => {
     if (!url) return;
@@ -210,7 +237,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080c15] text-slate-100 pb-24 md:pb-16 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
+    <div data-theme={theme} className="app-shell min-h-screen bg-[#080c15] text-slate-100 pb-24 md:pb-16 font-sans antialiased selection:bg-emerald-500 selection:text-slate-950">
       {/* Floating Global Toast Notification */}
       {toast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl shadow-2xl border border-emerald-500/50 bg-[#0c1222] text-white animate-in fade-in slide-in-from-top-3 duration-200">
@@ -231,8 +258,8 @@ export default function HomePage() {
 
       {/* Top Header Glass */}
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#080c15]/90 border-b border-slate-800/80">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between max-sm:flex-wrap gap-y-2">
+          <div className="flex items-center gap-2.5 max-sm:w-full">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">
               <Home className="w-5 h-5" />
             </div>
@@ -249,7 +276,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 max-sm:w-full max-sm:justify-between max-sm:gap-1">
+            <button type="button" onClick={toggleTheme} aria-label={`Aktifkan mode ${theme === "dark" ? "terang" : "gelap"}`} className="min-h-11 min-w-11 rounded-xl border border-slate-700 bg-slate-800 px-3 text-slate-200 hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-emerald-400" title={`Mode ${theme === "dark" ? "terang" : "gelap"}`}>
+              {theme === "dark" ? <Sun className="mx-auto h-5 w-5" /> : <Moon className="mx-auto h-5 w-5" />}
+            </button>
+            <button type="button" onClick={() => setIsCategoriesOpen(true)} className="min-h-11 rounded-xl border border-slate-700 bg-slate-800 px-3 text-sm font-semibold text-slate-200 hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-emerald-400 flex items-center gap-2" title="Kelola kategori">
+              <Tags className="h-4 w-4" /><span className="hidden sm:inline">Kategori</span>
+            </button>
             {/* Status Sync Badge */}
             <div
               onClick={() => setIsSettingsOpen(true)}
@@ -397,6 +430,7 @@ export default function HomePage() {
               budgets={budgets}
               onOpenLaborRecap={() => setIsLaborRecapOpen(true)}
             />
+            <SpendingPieChart expenses={expenses} />
           </div>
 
           {/* Right Column: Expense Form */}
@@ -410,6 +444,7 @@ export default function HomePage() {
                 onOpenCalculator={() => setIsCalcOpen(true)}
                 prefillData={prefillData}
                 isLoading={isLoading}
+                categories={categories}
               />
             </div>
           </div>
@@ -436,6 +471,7 @@ export default function HomePage() {
             }}
             onTogglePaymentStatus={handleTogglePaymentStatus}
             isLoading={isLoading}
+            categories={categories}
           />
         </div>
       </main>
@@ -491,6 +527,15 @@ export default function HomePage() {
         onClose={() => setIsSettingsOpen(false)}
         scriptUrl={scriptUrl}
         onSaveUrl={handleSaveScriptUrl}
+      />
+
+      <CategoriesModal
+        isOpen={isCategoriesOpen}
+        categories={categories}
+        customCategories={customCategories}
+        onClose={() => setIsCategoriesOpen(false)}
+        onAdd={(name) => saveCustomCategories([...customCategories, name])}
+        onRemove={(name) => saveCustomCategories(customCategories.filter((category) => category !== name))}
       />
 
       {/* Rekapitulasi Pembayaran Mingguan Jasa Bangun (Spreadsheet) Modal */}
