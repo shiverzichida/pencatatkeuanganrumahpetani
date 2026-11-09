@@ -440,7 +440,10 @@ export default function HomePage() {
                 onAddExpense={handleAddExpense}
                 onUpdateExpense={handleUpdateExpense}
                 editingExpense={editingExpense}
-                onCancelEdit={() => setEditingExpense(null)}
+                onCancelEdit={() => {
+                  setEditingExpense(null);
+                  setPrefillData(null);
+                }}
                 onOpenCalculator={() => setIsCalcOpen(true)}
                 prefillData={prefillData}
                 isLoading={isLoading}
@@ -465,6 +468,7 @@ export default function HomePage() {
             expenses={expenses}
             onDeleteExpense={handleDeleteExpense}
             onEditExpense={(item) => {
+              setPrefillData(null);
               setEditingExpense(item);
               setMobileTab("form");
               window.scrollTo({ top: 120, behavior: "smooth" });

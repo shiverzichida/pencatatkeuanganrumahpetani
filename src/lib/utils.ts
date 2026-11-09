@@ -73,6 +73,55 @@ export const formatDateDMonthY = (dStr?: string): string => {
   return dStr;
 };
 
+/**
+ * Format tanggal standar untuk elemen HTML <input type="date">: "YYYY-MM-DD"
+ * Menangani string ISO, Date string Google Sheets ("Wed Nov 04 2026..."), DD/MM/YYYY, D/Mmm/YYYY, dll.
+ */
+export const formatDateForInput = (dStr?: string): string => {
+  if (!dStr) return "";
+  const trimmed = dStr.trim();
+  // 1. Sudah format YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // 2. Format YYYY-MM-DDTHH:mm:ss... (ISO)
+  if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) {
+    return trimmed.split("T")[0];
+  }
+
+  // 3. Format DD/MM/YYYY atau D/M/YYYY atau D/Mmm/YYYY
+  const slashParts = trimmed.split("/");
+  if (slashParts.length === 3) {
+    const day = slashParts[0].padStart(2, "0");
+    let month = slashParts[1];
+    const year = slashParts[2].length === 2 ? `20${slashParts[2]}` : slashParts[2];
+    const months = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "sep", "okt", "nov", "des"];
+    const idx = months.findIndex((m) => month.toLowerCase().startsWith(m));
+    if (idx !== -1) {
+      month = String(idx + 1).padStart(2, "0");
+    } else if (!isNaN(Number(month))) {
+      month = String(Number(month)).padStart(2, "0");
+    }
+    return `${year}-${month}-${day}`;
+  }
+
+  // 4. Parse string Date umum (e.g. "Wed Nov 04 2026 00:00:00 GMT+0700 (Waktu Indonesia Barat)")
+  try {
+    const parsed = new Date(trimmed);
+    if (!isNaN(parsed.getTime())) {
+      const year = parsed.getFullYear();
+      const month = String(parsed.getMonth() + 1).padStart(2, "0");
+      const day = String(parsed.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+  } catch {
+    // Abaikan jika gagal parse Date
+  }
+
+  return "";
+};
+
 export function angkaTerbilang(nilai: number): string {
   const huruf = [
     "",

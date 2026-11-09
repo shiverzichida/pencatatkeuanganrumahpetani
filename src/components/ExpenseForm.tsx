@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { CATEGORIES, ExpenseItem, LaborDetails } from "@/types/expense";
 import { parseQuickExpense, ParsedQuickExpense } from "@/lib/quickParser";
-import { formatRupiah } from "@/lib/utils";
+import { formatRupiah, formatDateForInput } from "@/lib/utils";
 
 interface ExpenseFormProps {
   onAddExpense: (expense: Omit<ExpenseItem, "id" | "createdAt">) => Promise<void>;
@@ -52,11 +52,11 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   categories,
 }) => {
   const [date, setDate] = useState<string>("");
-  const [category, setCategory] = useState<string>(CATEGORIES[1]);
+  const [category, setCategory] = useState<string>(categories?.[0] || CATEGORIES[0]);
   const [itemName, setItemName] = useState<string>("");
   const [qty, setQty] = useState<number>(1);
   const [unit, setUnit] = useState<string>("btg");
-  const [unitPrice, setUnitPrice] = useState<number>(29000);
+  const [unitPrice, setUnitPrice] = useState<number>(0);
   const [paymentStatus, setPaymentStatus] = useState<"Lunas" | "Bon / Tempo">("Lunas");
   const [vendor, setVendor] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
@@ -115,30 +115,31 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
     setCategory(newCat);
     if (newCat === "Jasa Tukang Borongan") {
       setIsLaborMode(true);
-      updateLaborFields(laborWeekNo, laborStartDate, laborEndDate, laborWorkerCount, laborRatePerWorker);
-      if (!vendor) setVendor("Mandor / Kepala Tukang");
+      if (!editingExpense) {
+        updateLaborFields(laborWeekNo, laborStartDate, laborEndDate, laborWorkerCount, laborRatePerWorker);
+        if (!vendor) setVendor("Mandor / Kepala Tukang");
+      }
     } else if (newCat === "Jasa Tukang Lainnya") {
       setIsLaborMode(false);
-      setUnit("hari");
-      setUnitPrice(150000);
-      setQty(1);
+      if (!editingExpense && (!unit || unit === "pekerja")) {
+        setUnit("hari");
+        setUnitPrice(150000);
+        setQty(1);
+      }
       if (!vendor) setVendor("Tukang Harian / Spesialis");
     } else {
       setIsLaborMode(false);
-      setUnit("btg");
-      setUnitPrice(29000);
-      setQty(1);
     }
   };
 
   useEffect(() => {
     if (editingExpense) {
-      setDate(editingExpense.date || "");
-      setCategory(editingExpense.category || CATEGORIES[1]);
+      setDate(formatDateForInput(editingExpense.date) || new Date().toISOString().split("T")[0]);
+      setCategory(editingExpense.category || (categories && categories[0]) || CATEGORIES[0]);
       setItemName(editingExpense.itemName || "");
-      setQty(editingExpense.qty || 1);
+      setQty(Number(editingExpense.qty) || 1);
       setUnit(editingExpense.unit || "btg");
-      setUnitPrice(editingExpense.unitPrice || 0);
+      setUnitPrice(Number(editingExpense.unitPrice) || 0);
       setPaymentStatus(editingExpense.paymentStatus || "Lunas");
       setVendor(editingExpense.vendor || "");
       setNotes(editingExpense.notes || "");
@@ -149,17 +150,21 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
         setIsLaborMode(true);
         if (editingExpense.laborDetails) {
           setLaborWeekNo(editingExpense.laborDetails.weekNo || 1);
-          setLaborStartDate(editingExpense.laborDetails.startDate || "");
-          setLaborEndDate(editingExpense.laborDetails.endDate || "");
-          setLaborWorkerCount(editingExpense.laborDetails.workerCount || editingExpense.qty || 3);
-          setLaborRatePerWorker(editingExpense.laborDetails.ratePerWorker || editingExpense.unitPrice || 1000000);
+          setLaborStartDate(formatDateForInput(editingExpense.laborDetails.startDate) || "");
+          setLaborEndDate(formatDateForInput(editingExpense.laborDetails.endDate) || "");
+          setLaborWorkerCount(Number(editingExpense.laborDetails.workerCount) || Number(editingExpense.qty) || 3);
+          setLaborRatePerWorker(Number(editingExpense.laborDetails.ratePerWorker) || Number(editingExpense.unitPrice) || 1000000);
         }
       } else {
         setIsLaborMode(false);
       }
     } else {
       setDate(new Date().toISOString().split("T")[0]);
+      setCategory((categories && categories[0]) || CATEGORIES[0]);
       setItemName("");
+      setQty(1);
+      setUnit("btg");
+      setUnitPrice(0);
       setPaymentStatus("Lunas");
       setVendor("");
       setNotes("");
@@ -426,7 +431,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               onChange={(e) => handleCategoryChange(e.target.value)}
               className="w-full text-xs sm:text-sm glass-input rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white bg-slate-900"
             >
-              {categories.map((cat) => (
+              {Array.from(new Set([...(categories && categories.length > 0 ? categories : CATEGORIES), ...(category ? [category] : [])])).map((cat) => (
                 <option key={cat} value={cat} className="bg-slate-900 text-white">
                   {cat}
                 </option>
@@ -562,13 +567,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
             value={itemName}
             onChange={(e) => setItemName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && quickDetected) {
+              if (e.key === "Enter" && quickDetected && !editingExpense) {
                 e.preventDefault();
                 applyQuickParsed(quickDetected);
               }
             }}
             onBlur={() => {
-              if (quickDetected) {
+              if (quickDetected && !editingExpense) {
                 applyQuickParsed(quickDetected);
               }
             }}
