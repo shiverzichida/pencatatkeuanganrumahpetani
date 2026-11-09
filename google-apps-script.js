@@ -247,6 +247,46 @@ function doPost(e) {
         message: found ? "Baris berhasil dihapus" : "ID tidak ditemukan" 
       })).setMimeType(ContentService.MimeType.JSON);
     }
+
+    if (action === "add_category") {
+      const newCategory = contents.category;
+      if (newCategory) {
+        const budgetSheet = ss.getSheetByName(BUDGET_SHEET);
+        const bRows = budgetSheet.getDataRange().getValues();
+        let exists = false;
+        for (let j = 1; j < bRows.length; j++) {
+          if (String(bRows[j][0]).trim().toLowerCase() === String(newCategory).trim().toLowerCase()) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          budgetSheet.appendRow([newCategory, 0, 0]);
+        }
+        return ContentService.createTextOutput(JSON.stringify({ 
+          status: "success", 
+          message: "Kategori berhasil dicatat ke Spreadsheet" 
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    if (action === "delete_category") {
+      const categoryToDelete = contents.category;
+      if (categoryToDelete) {
+        const budgetSheet = ss.getSheetByName(BUDGET_SHEET);
+        const bRows = budgetSheet.getDataRange().getValues();
+        for (let j = 1; j < bRows.length; j++) {
+          if (String(bRows[j][0]).trim().toLowerCase() === String(categoryToDelete).trim().toLowerCase()) {
+            budgetSheet.deleteRow(j + 1);
+            break;
+          }
+        }
+        return ContentService.createTextOutput(JSON.stringify({ 
+          status: "success", 
+          message: "Kategori berhasil dihapus dari Spreadsheet" 
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
     
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Aksi tidak dikenali" }))
       .setMimeType(ContentService.MimeType.JSON);

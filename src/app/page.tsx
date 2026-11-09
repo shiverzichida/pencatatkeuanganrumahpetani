@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { BudgetSummary } from "@/components/BudgetSummary";
 import { ExpenseList } from "@/components/ExpenseList";
@@ -70,7 +70,16 @@ export default function HomePage() {
     const savedExpenses = localStorage.getItem("local_expenses");
     if (savedExpenses) {
       try {
-        setExpenses(JSON.parse(savedExpenses));
+        const parsed = JSON.parse(savedExpenses);
+        setExpenses(parsed);
+        if (Array.isArray(parsed)) {
+          const extraCats = parsed
+            .map((item: any) => item.category)
+            .filter((c: any) => typeof c === "string" && c.trim() && !CATEGORIES.includes(c as any));
+          if (extraCats.length > 0) {
+            setCustomCategories((prev) => Array.from(new Set([...prev, ...extraCats])));
+          }
+        }
       } catch (e) {
         console.error("Failed to parse local expenses", e);
       }
@@ -81,10 +90,69 @@ export default function HomePage() {
     }
   }, []);
 
-  const categories = [...CATEGORIES, ...customCategories.filter((category) => !CATEGORIES.includes(category as typeof CATEGORIES[number]))];
-  const saveCustomCategories = (next: string[]) => {
+  // Gabungkan kategori bawaan, kategori kustom, serta kategori dari transaksi & budget Google Sheets
+  const categories = useMemo(() => {
+    const set = new Set<string>(CATEGORIES);
+    customCategories.forEach((c) => {
+      if (c && c.trim()) set.add(c.trim());
+    });
+    expenses.forEach((e) => {
+      if (e.category && e.category.trim()) set.add(e.category.trim());
+    });
+    budgets.forEach((b) => {
+      if (b.category && b.category.trim()) set.add(b.category.trim());
+    });
+    return Array.from(set);
+  }, [customCategories, expenses, budgets]);
+
+  const handleAddCategory = async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const next = Array.from(new Set([...customCategories, trimmed]));
     setCustomCategories(next);
     localStorage.setItem("custom_categories", JSON.stringify(next));
+    showToast(`✓ Kategori "${trimmed}" berhasil ditambahkan!`);
+
+    if (scriptUrl) {
+      try {
+        await fetch(scriptUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+          },
+          body: JSON.stringify({
+            action: "add_category",
+            category: trimmed,
+          }),
+        });
+      } catch (err) {
+        console.error("Gagal sinkronkan kategori ke Google Spreadsheet", err);
+      }
+    }
+  };
+
+  const handleRemoveCategory = async (name: string) => {
+    const next = customCategories.filter((c) => c !== name);
+    setCustomCategories(next);
+    localStorage.setItem("custom_categories", JSON.stringify(next));
+    showToast(`Kategori "${name}" dihapus.`, "info");
+
+    if (scriptUrl) {
+      try {
+        await fetch(scriptUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+          },
+          body: JSON.stringify({
+            action: "delete_category",
+            category: name,
+          }),
+        });
+      } catch (err) {
+        console.error("Gagal hapus kategori di Google Spreadsheet", err);
+      }
+    }
   };
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
@@ -105,6 +173,31 @@ export default function HomePage() {
         if (Array.isArray(json.budgets) && json.budgets.length > 0) {
           setBudgets(json.budgets);
         }
+
+        // Auto-sinkronisasi kategori dari Google Spreadsheet (transaksi & budget sheet)
+        const sheetCategories = new Set<string>();
+        json.data.forEach((item: ExpenseItem) => {
+          if (item.category && typeof item.category === "string" && item.category.trim()) {
+            sheetCategories.add(item.category.trim());
+          }
+        });
+        if (Array.isArray(json.budgets)) {
+          json.budgets.forEach((b: { category: string }) => {
+            if (b.category && typeof b.category === "string" && b.category.trim()) {
+              sheetCategories.add(b.category.trim());
+            }
+          });
+        }
+
+        setCustomCategories((prev) => {
+          const nonDefaultSheetCats = Array.from(sheetCategories).filter(
+            (c) => !CATEGORIES.includes(c as typeof CATEGORIES[number])
+          );
+          const combined = Array.from(new Set([...prev, ...nonDefaultSheetCats]));
+          localStorage.setItem("custom_categories", JSON.stringify(combined));
+          return combined;
+        });
+
         setSyncStatus("synced");
       } else {
         setSyncStatus("synced");
@@ -538,8 +631,8 @@ export default function HomePage() {
         categories={categories}
         customCategories={customCategories}
         onClose={() => setIsCategoriesOpen(false)}
-        onAdd={(name) => saveCustomCategories([...customCategories, name])}
-        onRemove={(name) => saveCustomCategories(customCategories.filter((category) => category !== name))}
+        onAdd={handleAddCategory}
+        onRemove={handleRemoveCategory}
       />
 
       {/* Rekapitulasi Pembayaran Mingguan Jasa Bangun (Spreadsheet) Modal */}
