@@ -90,7 +90,7 @@ export default function HomePage() {
     }
   }, []);
 
-  // Gabungkan kategori bawaan, kategori kustom, serta kategori dari transaksi & budget Google Sheets
+  // Gabungkan kategori bawaan, kategori kustom, serta kategori dari transaksi & budget Google Sheets (Disusun A-Z)
   const categories = useMemo(() => {
     const set = new Set<string>(CATEGORIES);
     customCategories.forEach((c) => {
@@ -102,7 +102,7 @@ export default function HomePage() {
     budgets.forEach((b) => {
       if (b.category && b.category.trim()) set.add(b.category.trim());
     });
-    return Array.from(set);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "id-ID"));
   }, [customCategories, expenses, budgets]);
 
   const handleAddCategory = async (name: string) => {
@@ -537,7 +537,7 @@ export default function HomePage() {
             }`}
           >
             <ListOrdered className="w-3.5 h-3.5" />
-            Riwayat ({expenses.length})
+            Transaksi ({expenses.length})
           </button>
         </div>
 
@@ -577,7 +577,7 @@ export default function HomePage() {
         <div className={`space-y-3 pt-2 ${mobileTab !== "list" ? "hidden lg:block" : ""}`}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
-              Riwayat Pengeluaran
+              Daftar Transaksi
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-emerald-500/20">
                 {expenses.length} transaksi
               </span>
@@ -629,7 +629,7 @@ export default function HomePage() {
           }`}
         >
           <ListOrdered className="w-5 h-5" />
-          <span>Riwayat</span>
+          <span>Transaksi</span>
         </button>
       </div>
 

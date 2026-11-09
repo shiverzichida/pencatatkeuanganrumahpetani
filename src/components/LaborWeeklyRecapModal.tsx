@@ -196,7 +196,7 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
         : `
           <tr>
             <td colspan="8" style="text-align: center; padding: 25px; color: #64748b;">
-              Belum ada riwayat pembayaran upah tukang yang tercatat.
+              Belum ada transaksi pembayaran upah tukang yang tercatat.
             </td>
           </tr>
         `;

@@ -22,6 +22,22 @@ import { CATEGORIES, ExpenseItem, LaborDetails } from "@/types/expense";
 import { parseQuickExpense, ParsedQuickExpense } from "@/lib/quickParser";
 import { formatRupiah, formatDateForInput } from "@/lib/utils";
 
+const DEFAULT_UNITS = [
+  "pcs",
+  "paket",
+  "btg",
+  "sak",
+  "pick up",
+  "kg",
+  "meter",
+  "roll",
+  "lembar",
+  "hari",
+  "pekerja",
+  "dus",
+  "ls",
+] as const;
+
 interface ExpenseFormProps {
   onAddExpense: (expense: Omit<ExpenseItem, "id" | "createdAt">) => Promise<void>;
   onUpdateExpense: (expense: ExpenseItem) => Promise<void>;
@@ -55,7 +71,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const [category, setCategory] = useState<string>(categories?.[0] || CATEGORIES[0]);
   const [itemName, setItemName] = useState<string>("");
   const [qty, setQty] = useState<number>(1);
-  const [unit, setUnit] = useState<string>("btg");
+  const [unit, setUnit] = useState<string>("pcs");
+  const [isCustomUnit, setIsCustomUnit] = useState<boolean>(false);
   const [unitPrice, setUnitPrice] = useState<number>(0);
   const [paymentStatus, setPaymentStatus] = useState<"Lunas" | "Bon / Tempo">("Lunas");
   const [vendor, setVendor] = useState<string>("");
@@ -138,7 +155,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setCategory(editingExpense.category || (categories && categories[0]) || CATEGORIES[0]);
       setItemName(editingExpense.itemName || "");
       setQty(Number(editingExpense.qty) || 1);
-      setUnit(editingExpense.unit || "btg");
+      setUnit(editingExpense.unit || "pcs");
+      setIsCustomUnit(false);
       setUnitPrice(Number(editingExpense.unitPrice) || 0);
       setPaymentStatus(editingExpense.paymentStatus || "Lunas");
       setVendor(editingExpense.vendor || "");
@@ -163,7 +181,8 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setCategory((categories && categories[0]) || CATEGORIES[0]);
       setItemName("");
       setQty(1);
-      setUnit("btg");
+      setUnit("pcs");
+      setIsCustomUnit(false);
       setUnitPrice(0);
       setPaymentStatus("Lunas");
       setVendor("");
@@ -431,11 +450,13 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               onChange={(e) => handleCategoryChange(e.target.value)}
               className="w-full text-xs sm:text-sm glass-input rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-white bg-slate-900"
             >
-              {Array.from(new Set([...(categories && categories.length > 0 ? categories : CATEGORIES), ...(category ? [category] : [])])).map((cat) => (
-                <option key={cat} value={cat} className="bg-slate-900 text-white">
-                  {cat}
-                </option>
-              ))}
+              {Array.from(new Set([...(categories && categories.length > 0 ? categories : CATEGORIES), ...(category ? [category] : [])]))
+                .sort((a, b) => a.localeCompare(b, "id-ID"))
+                .map((cat) => (
+                  <option key={cat} value={cat} className="bg-slate-900 text-white">
+                    {cat}
+                  </option>
+                ))}
             </select>
           </div>
         </div>
@@ -660,18 +681,54 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
               />
             </div>
 
-            {/* Satuan */}
+            {/* Satuan: Dropdown List (pcs / paket / dll) + Opsi Ketik Manual */}
             <div className="col-span-6 sm:col-span-3">
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5 truncate">
-                Satuan
-              </label>
-              <input
-                type="text"
-                placeholder="btg / sak / paket"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                className="w-full text-sm sm:text-base bg-slate-900/80 border border-slate-700/70 rounded-xl px-2.5 py-2 focus:outline-none focus:border-emerald-500 text-center text-slate-200 font-semibold"
-              />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-semibold text-slate-400 truncate">
+                  Satuan
+                </label>
+                {isCustomUnit && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomUnit(false)}
+                    className="text-[10px] text-emerald-400 hover:underline cursor-pointer"
+                  >
+                    Pilih List
+                  </button>
+                )}
+              </div>
+              {isCustomUnit ? (
+                <input
+                  type="text"
+                  placeholder="Ketik satuan..."
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  autoFocus
+                  className="w-full text-xs sm:text-sm bg-slate-900/80 border border-emerald-500/70 rounded-xl px-2.5 py-2 focus:outline-none focus:border-emerald-500 text-center text-white font-semibold"
+                />
+              ) : (
+                <select
+                  value={unit}
+                  onChange={(e) => {
+                    if (e.target.value === "__custom__") {
+                      setIsCustomUnit(true);
+                      setUnit("");
+                    } else {
+                      setUnit(e.target.value);
+                    }
+                  }}
+                  className="w-full text-xs sm:text-sm bg-slate-900/80 border border-slate-700/70 rounded-xl px-2.5 py-2 focus:outline-none focus:border-emerald-500 text-center text-slate-200 font-semibold cursor-pointer"
+                >
+                  {Array.from(new Set([...DEFAULT_UNITS, ...(unit ? [unit] : [])])).map((u) => (
+                    <option key={u} value={u} className="bg-slate-900 text-white">
+                      {u}
+                    </option>
+                  ))}
+                  <option value="__custom__" className="bg-slate-900 text-emerald-400 font-semibold">
+                    + Ketik Manual...
+                  </option>
+                </select>
+              )}
             </div>
 
             {/* Harga Satuan (Rp) */}

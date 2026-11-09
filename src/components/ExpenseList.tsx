@@ -125,7 +125,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
               className="text-xs py-2 px-3 glass-input rounded-xl focus:outline-none w-full sm:w-auto bg-slate-900 text-white"
             >
               <option value="ALL" className="bg-slate-900">Semua Kategori ({expenses.length})</option>
-              {categories.map((c) => (
+              {categories.slice().sort((a, b) => a.localeCompare(b, "id-ID")).map((c) => (
                 <option key={c} value={c} className="bg-slate-900 text-white">
                   {c}
                 </option>
