@@ -13,15 +13,8 @@ interface ReceiptModalProps {
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({ item, onClose }) => {
   if (!item) return null;
 
-  // Deteksi cerdas apakah ini pengeluaran upah tukang (KJ) atau kuitansi umum (KW)
-  const isLaborInitial = Boolean(
-    item.laborDetails ||
-    item.category === "Jasa Tukang Borongan" ||
-    item.category === "Jasa Tukang Lainnya" ||
-    item.itemName.toLowerCase().includes("upah") ||
-    item.itemName.toLowerCase().includes("pekan") ||
-    item.unit === "pekerja"
-  );
+  // Deteksi cerdas: hanya transaksi dari pos "Jasa Tukang Borongan" yang default ke format KJ
+  const isLaborInitial = item.category === "Jasa Tukang Borongan";
 
   const [receiptType, setReceiptType] = useState<"KJ" | "KW">(isLaborInitial ? "KJ" : "KW");
 

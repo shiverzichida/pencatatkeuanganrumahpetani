@@ -37,20 +37,12 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
 }) => {
   const [contractValue, setContractValue] = useState<number>(110000000); // Rp 110.000.000,- (Default Kontrak Tukang)
 
-  // 100% patokan ke data input riil yang ada di database / expenses
+  // 100% patokan ke data input riil yang ada di database / expenses KHUSUS Kategori "Jasa Tukang Borongan"
   const { rows, totalWagePaid, nextSuggestedWeek } = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
-    const laborItems = expenses.filter((e) => {
-      return (
-        e.category === "Jasa Tukang Borongan" ||
-        Boolean(e.laborDetails) ||
-        (e.itemName && e.itemName.toLowerCase().includes("upah")) ||
-        (e.itemName && e.itemName.toLowerCase().includes("tukang")) ||
-        (e.notes && e.notes.toLowerCase().includes("pekan")) ||
-        e.unit === "pekerja"
-      );
-    });
+    // HANYA ambil transaksi yang berasal dari Kategori Pos Biaya "Jasa Tukang Borongan"
+    const laborItems = expenses.filter((e) => e.category === "Jasa Tukang Borongan");
 
     if (laborItems.length === 0) {
       return {
@@ -448,7 +440,7 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
                   Rekapitulasi Pembayaran Mingguan Jasa Bangun
                 </h3>
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  Data Riil ({rows.length} Pekan)
+                  Pos: Jasa Tukang Borongan ({rows.length} Pekan)
                 </span>
               </div>
               <p className="text-xs text-slate-400">
@@ -577,9 +569,9 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
                           <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20 mb-1">
                             <Inbox className="w-6 h-6" />
                           </div>
-                          <h4 className="font-bold text-slate-200 text-sm">Belum Ada Transaksi Upah Tukang</h4>
+                          <h4 className="font-bold text-slate-200 text-sm">Belum Ada Transaksi Jasa Tukang Borongan</h4>
                           <p className="text-xs text-slate-400 leading-relaxed">
-                            Tabel ini membaca riwayat transaksi nyata dari pos <em>Jasa Tukang Borongan</em>. Begitu Anda mencatat pembayaran upah, pekan dan akumulasi berjalan akan otomatis terangkum di sini.
+                            Tabel ini khusus merekapitulasi pengeluaran dari Kategori Pos Biaya <strong className="text-amber-300">Jasa Tukang Borongan</strong>. Transaksi dari pos kategori lainnya (termasuk Jasa Tukang Lainnya atau Material) tidak dimasukkan ke dalam rekapitulasi borongan utama ini.
                           </p>
                           {onAddNewWeek && (
                             <button
