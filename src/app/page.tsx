@@ -257,7 +257,7 @@ export default function HomePage() {
     if (scriptUrl) {
       setIsLoading(true);
       try {
-        await fetch(scriptUrl, {
+        const res = await fetch(scriptUrl, {
           method: "POST",
           headers: {
             "Content-Type": "text/plain;charset=utf-8",
@@ -267,6 +267,33 @@ export default function HomePage() {
             data: updatedExp,
           }),
         });
+        const resJson = await res.json().catch(() => null);
+
+        // Fallback untuk deployment Google Apps Script versi lama yang belum mengenal action "edit":
+        // Gunakan kombinasi delete row lama + add data baru yang 100% didukung script lama!
+        if (!resJson || resJson.status === "error" || resJson.status === "not_found") {
+          console.warn("Script cloud belum mendukung 'edit' langsung. Menjalankan fallback delete + add...");
+          await fetch(scriptUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8",
+            },
+            body: JSON.stringify({
+              action: "delete",
+              id: updatedExp.id,
+            }),
+          });
+          await fetch(scriptUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8",
+            },
+            body: JSON.stringify({
+              action: "add",
+              data: updatedExp,
+            }),
+          });
+        }
         setSyncStatus("synced");
       } catch (err) {
         console.error("Gagal update di Google Spreadsheet", err);
