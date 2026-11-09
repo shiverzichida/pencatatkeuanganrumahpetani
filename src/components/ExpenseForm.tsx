@@ -636,11 +636,12 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
           </div>
         </div>
 
-        {/* Row 3: Qty, Satuan, Harga Satuan, Total (Matching user screenshot & clean finance styling) */}
-        <div className="bg-[#0b101c] p-3 sm:p-4 rounded-2xl border border-slate-800/90 shadow-inner">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
+        {/* Row 3: Qty, Satuan, Harga Satuan & Subtotal (Luas, Rapi, & Tidak Mepet) */}
+        <div className="bg-[#0b101c] p-3.5 sm:p-4 rounded-2xl border border-slate-800/90 shadow-inner space-y-3">
+          <div className="grid grid-cols-12 gap-2.5 sm:gap-3">
+            {/* Jumlah Qty */}
+            <div className="col-span-6 sm:col-span-3">
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5 truncate">
                 Jumlah (Qty)
               </label>
               <input
@@ -650,45 +651,60 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 value={qty}
                 onChange={(e) => setQty(parseFloat(e.target.value) || 0)}
                 required
-                className="w-full text-sm sm:text-base bg-slate-900/80 border border-slate-700/70 rounded-xl px-2.5 py-2 focus:outline-none focus:border-emerald-500 text-center font-extrabold text-white font-mono tabular-nums"
+                className="w-full text-sm sm:text-base bg-slate-900/80 border border-slate-700/70 rounded-xl px-2.5 py-2 focus:outline-none focus:border-emerald-500 text-center font-extrabold text-white font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
             </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
+            {/* Satuan */}
+            <div className="col-span-6 sm:col-span-3">
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5 truncate">
                 Satuan
               </label>
               <input
                 type="text"
-                placeholder="btg / pcs / sak"
+                placeholder="btg / sak / paket"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 className="w-full text-sm sm:text-base bg-slate-900/80 border border-slate-700/70 rounded-xl px-2.5 py-2 focus:outline-none focus:border-emerald-500 text-center text-slate-200 font-semibold"
               />
             </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
+            {/* Harga Satuan (Rp) */}
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5 truncate">
                 Harga Satuan (Rp)
               </label>
-              <input
-                type="number"
-                min="0"
-                step="100"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(parseInt(e.target.value) || 0)}
-                required
-                className="w-full text-sm sm:text-base bg-slate-900/80 border border-emerald-500/50 rounded-xl px-2.5 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400 focus:border-emerald-400 font-bold text-right text-emerald-400 font-mono tabular-nums"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-400 mb-1.5">
-                Total (Rp)
-              </label>
-              <div className="text-sm sm:text-base font-black text-emerald-300 py-2 px-3 bg-emerald-950/30 border border-emerald-500/40 rounded-xl text-right font-mono tabular-nums tracking-tight truncate flex items-center justify-end">
-                {new Intl.NumberFormat("id-ID").format(calculatedTotal)}
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 font-mono pointer-events-none">
+                  Rp
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(parseInt(e.target.value) || 0)}
+                  required
+                  className="w-full text-sm sm:text-base bg-slate-900/80 border border-emerald-500/50 rounded-xl pl-8 pr-2.5 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-400 focus:border-emerald-400 font-bold text-right text-emerald-400 font-mono tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
               </div>
+            </div>
+          </div>
+
+          {/* Subtotal Display Box: Elegan, Terbaca Jelas, & Tidak Terpotong */}
+          <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between bg-slate-900/50 px-3.5 py-2.5 rounded-xl border border-emerald-500/20">
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+                Total Estimasi Biaya:
+              </span>
+              <span className="text-xs text-slate-400 font-mono">
+                {qty} {unit || "item"} × {formatRupiah(unitPrice)}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-base sm:text-lg font-black text-emerald-400 font-mono tracking-tight tabular-nums block">
+                {formatRupiah(calculatedTotal)}
+              </span>
             </div>
           </div>
         </div>

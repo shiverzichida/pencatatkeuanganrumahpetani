@@ -258,7 +258,7 @@ export default function HomePage() {
 
       {/* Top Header Glass */}
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#080c15]/90 border-b border-slate-800/80">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between max-sm:flex-wrap gap-y-2">
+        <div className="max-w-7xl xl:max-w-[1380px] mx-auto px-4 py-3 flex items-center justify-between max-sm:flex-wrap gap-y-2">
           <div className="flex items-center gap-2.5 max-sm:w-full">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">
               <Home className="w-5 h-5" />
@@ -347,7 +347,7 @@ export default function HomePage() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-3.5 sm:px-4 mt-4 sm:mt-6 space-y-4 sm:space-y-6">
+      <main className="max-w-7xl xl:max-w-[1380px] mx-auto px-3.5 sm:px-6 mt-4 sm:mt-6 space-y-4 sm:space-y-6">
         {/* Banner Target Budget & Tukang */}
         <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -424,7 +424,7 @@ export default function HomePage() {
         {/* Desktop Layout Grid (Visible always on lg, controlled by tabs on mobile) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Budget Summary */}
-          <div className={`lg:col-span-7 space-y-6 ${mobileTab !== "dashboard" ? "hidden lg:block" : ""}`}>
+          <div className={`lg:col-span-6 xl:col-span-7 space-y-6 ${mobileTab !== "dashboard" ? "hidden lg:block" : ""}`}>
             <BudgetSummary
               expenses={expenses}
               budgets={budgets}
@@ -434,7 +434,7 @@ export default function HomePage() {
           </div>
 
           {/* Right Column: Expense Form */}
-          <div className={`lg:col-span-5 ${mobileTab !== "form" ? "hidden lg:block" : ""}`}>
+          <div className={`lg:col-span-6 xl:col-span-5 ${mobileTab !== "form" ? "hidden lg:block" : ""}`}>
             <div className="sticky top-20">
               <ExpenseForm
                 onAddExpense={handleAddExpense}
