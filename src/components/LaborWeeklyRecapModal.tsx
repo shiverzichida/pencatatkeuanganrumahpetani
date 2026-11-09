@@ -2,13 +2,14 @@
 
 import React, { useState, useMemo } from "react";
 import { X, Printer, Hammer, Users, Calendar, PlusCircle, CheckCircle, ArrowRight, ShieldCheck, Inbox } from "lucide-react";
-import { ExpenseItem } from "@/types/expense";
+import { ExpenseItem, BudgetCategory } from "@/types/expense";
 import { formatRupiah, formatDateIndo, formatDateDMonthY } from "@/lib/utils";
 
 interface LaborWeeklyRecapModalProps {
   isOpen: boolean;
   onClose: () => void;
   expenses: ExpenseItem[];
+  budgets?: BudgetCategory[];
   onAddNewWeek?: (suggestedWeek: number) => void;
   onPrintKJ?: (item: ExpenseItem) => void;
 }
@@ -32,10 +33,18 @@ export const LaborWeeklyRecapModal: React.FC<LaborWeeklyRecapModalProps> = ({
   isOpen,
   onClose,
   expenses,
+  budgets,
   onAddNewWeek,
   onPrintKJ,
 }) => {
-  const [contractValue, setContractValue] = useState<number>(110000000); // Rp 110.000.000,- (Default Kontrak Tukang)
+  const laborBudget = budgets?.find((b) => b.category === "Jasa Tukang Borongan")?.budget;
+  const [contractValue, setContractValue] = useState<number>(laborBudget || 110000000);
+
+  React.useEffect(() => {
+    if (laborBudget && laborBudget > 0) {
+      setContractValue(laborBudget);
+    }
+  }, [laborBudget]);
 
   // 100% patokan ke data input riil yang ada di database / expenses KHUSUS Kategori "Jasa Tukang Borongan"
   const { rows, totalWagePaid, nextSuggestedWeek } = useMemo(() => {

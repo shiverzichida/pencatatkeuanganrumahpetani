@@ -67,6 +67,16 @@ export default function HomePage() {
     const savedUrl = localStorage.getItem("gapps_script_url") || DEFAULT_SCRIPT_URL;
     setScriptUrl(savedUrl);
 
+    const savedBudgets = localStorage.getItem("local_budgets");
+    if (savedBudgets) {
+      try {
+        const parsedB = JSON.parse(savedBudgets);
+        if (Array.isArray(parsedB) && parsedB.length > 0) setBudgets(parsedB);
+      } catch (e) {
+        console.error("Failed to parse local budgets", e);
+      }
+    }
+
     const savedExpenses = localStorage.getItem("local_expenses");
     if (savedExpenses) {
       try {
@@ -168,10 +178,23 @@ export default function HomePage() {
       const res = await fetch(url);
       const json = await res.json();
       if (json.status === "success" && Array.isArray(json.data) && json.data.length > 0) {
-        setExpenses(json.data);
-        localStorage.setItem("local_expenses", JSON.stringify(json.data));
+        // Normalisasi status Bon dari tag [BON] di catatan agar tersinkronisasi antar perangkat
+        const normalizedExpenses: ExpenseItem[] = json.data.map((item: any) => {
+          const notesStr = item.notes || "";
+          const hasBonTag = /\[bon\]/i.test(notesStr);
+          const cleanNotes = notesStr.replace(/\[bon\]\s*/gi, "").trim();
+          return {
+            ...item,
+            notes: cleanNotes,
+            paymentStatus: hasBonTag ? "Bon / Tempo" : (item.paymentStatus || "Lunas"),
+          };
+        });
+
+        setExpenses(normalizedExpenses);
+        localStorage.setItem("local_expenses", JSON.stringify(normalizedExpenses));
         if (Array.isArray(json.budgets) && json.budgets.length > 0) {
           setBudgets(json.budgets);
+          localStorage.setItem("local_budgets", JSON.stringify(json.budgets));
         }
 
         // Auto-sinkronisasi kategori dari Google Spreadsheet (transaksi & budget sheet)
@@ -226,6 +249,12 @@ export default function HomePage() {
     if (scriptUrl) {
       setIsLoading(true);
       try {
+        const cloudPayload = {
+          ...newExpense,
+          notes: newExpense.paymentStatus === "Bon / Tempo"
+            ? `[BON] ${newExpense.notes || ""}`.trim()
+            : (newExpense.notes || "").replace(/\[bon\]\s*/gi, "").trim(),
+        };
         await fetch(scriptUrl, {
           method: "POST",
           headers: {
@@ -233,7 +262,7 @@ export default function HomePage() {
           },
           body: JSON.stringify({
             action: "add",
-            data: newExpense,
+            data: cloudPayload,
           }),
         });
         setSyncStatus("synced");
@@ -257,6 +286,13 @@ export default function HomePage() {
     if (scriptUrl) {
       setIsLoading(true);
       try {
+        const cloudPayload = {
+          ...updatedExp,
+          notes: updatedExp.paymentStatus === "Bon / Tempo"
+            ? `[BON] ${updatedExp.notes || ""}`.trim()
+            : (updatedExp.notes || "").replace(/\[bon\]\s*/gi, "").trim(),
+        };
+
         const res = await fetch(scriptUrl, {
           method: "POST",
           headers: {
@@ -264,7 +300,7 @@ export default function HomePage() {
           },
           body: JSON.stringify({
             action: "edit",
-            data: updatedExp,
+            data: cloudPayload,
           }),
         });
         const resJson = await res.json().catch(() => null);
@@ -290,7 +326,7 @@ export default function HomePage() {
             },
             body: JSON.stringify({
               action: "add",
-              data: updatedExp,
+              data: cloudPayload,
             }),
           });
         }
@@ -667,6 +703,7 @@ export default function HomePage() {
         isOpen={isLaborRecapOpen}
         onClose={() => setIsLaborRecapOpen(false)}
         expenses={expenses}
+        budgets={budgets}
         onAddNewWeek={(nextWeek) => {
           setPrefillData({
             category: "Jasa Tukang Borongan",
