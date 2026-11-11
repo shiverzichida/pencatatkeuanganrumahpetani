@@ -8,10 +8,9 @@ import { BudgetCategory, ExpenseItem } from "@/types/expense";
 interface BudgetSummaryProps {
   expenses: ExpenseItem[];
   budgets: BudgetCategory[];
-  onOpenLaborRecap?: () => void;
 }
 
-export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets, onOpenLaborRecap }) => {
+export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets }) => {
   const totalSpent = expenses.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
   const totalBudget = budgets.reduce((sum, b) => sum + b.budget, 0);
   const totalPessimistic = budgets.reduce((sum, b) => sum + b.pessimistic, 0);
@@ -23,25 +22,6 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets,
   const isNearBudgetLimit = percentageSpent >= 85 && percentageSpent < 100;
   const isOverBudget = totalSpent > totalBudget;
   const isOverPessimistic = totalSpent > totalPessimistic;
-
-  const spendingByCategory = budgets.map((b) => {
-    const spent = expenses
-      .filter((e) => e.category === b.category)
-      .reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
-    const percent = b.budget > 0 ? Math.round((spent / b.budget) * 100) : 0;
-    const isCategoryWarning = percent >= 85 && percent <= 100;
-    const isCategoryDanger = spent > b.budget;
-    return {
-      category: b.category,
-      budget: b.budget,
-      pessimistic: b.pessimistic,
-      spent,
-      percent,
-      isCategoryWarning,
-      isCategoryDanger,
-      isOver: spent > b.budget,
-    };
-  });
 
   return (
     <div className="space-y-4">
@@ -168,69 +148,6 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets,
           <span>0%</span>
           <span className="text-slate-300">Target: {formatRupiah(totalBudget)}</span>
           <span className="text-amber-400">Pesimis: {formatRupiah(totalPessimistic)}</span>
-        </div>
-      </div>
-
-      {/* Breakdown per Kategori */}
-      <div className="glass-panel p-4 sm:p-5 rounded-2xl">
-        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center justify-between">
-          <span>Rincian Budget per Kategori</span>
-          <span className="text-[10px] text-slate-500 font-normal">Realisasi vs Target</span>
-        </h4>
-        <div className="space-y-3.5">
-          {spendingByCategory.map((cat) => (
-            <div key={cat.category} className="space-y-1.5 group">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-medium text-slate-200 truncate pr-2 group-hover:text-white transition-colors flex items-center gap-1.5">
-                  {cat.isCategoryDanger ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-                  ) : cat.isCategoryWarning ? (
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  ) : null}
-                  {cat.category}
-                  {cat.category === "Jasa Tukang Borongan" && onOpenLaborRecap && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenLaborRecap();
-                      }}
-                      className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/40 transition-colors cursor-pointer"
-                    >
-                      Rekap KJ →
-                    </button>
-                  )}
-                </span>
-                <span className="text-slate-400 flex-shrink-0 text-right">
-                  <span className="font-bold text-white">{formatRupiah(cat.spent)}</span>
-                  <span className="text-slate-500 text-[11px]"> / {formatRupiah(cat.budget)}</span>
-                </span>
-              </div>
-              <div className="w-full bg-slate-800/70 rounded-full h-2 overflow-hidden border border-white/5">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    cat.isCategoryDanger
-                      ? "bg-rose-500"
-                      : cat.percent > 80
-                      ? "bg-amber-500"
-                      : "bg-indigo-500"
-                  }`}
-                  style={{ width: `${Math.min(cat.percent, 100)}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-400">
-                <span>{cat.percent}% terpakai</span>
-                {cat.isCategoryDanger ? (
-                  <span className="text-rose-400 font-semibold flex items-center gap-0.5">
-                    <AlertTriangle className="w-3 h-3" /> Melebihi budget ({formatRupiah(cat.spent - cat.budget)})
-                  </span>
-                ) : cat.isCategoryWarning ? (
-                  <span className="text-amber-400 font-medium">Mendekati limit budget</span>
-                ) : (
-                  <span>Sisa: {formatRupiah(cat.budget - cat.spent)}</span>
-                )}
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>

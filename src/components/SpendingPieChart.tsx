@@ -1,12 +1,18 @@
 "use client";
 
 import React from "react";
+import { Layers } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
 import { ExpenseItem } from "@/types/expense";
 
 const SEGMENT_COLORS = ["#10b981", "#f59e0b", "#6366f1", "#f97316", "#06b6d4", "#ec4899", "#84cc16", "#a78bfa", "#64748b"];
 
-export const SpendingPieChart: React.FC<{ expenses: ExpenseItem[] }> = ({ expenses }) => {
+interface SpendingPieChartProps {
+  expenses: ExpenseItem[];
+  onOpenBudgetBreakdown?: () => void;
+}
+
+export const SpendingPieChart: React.FC<SpendingPieChartProps> = ({ expenses, onOpenBudgetBreakdown }) => {
   const totals = expenses.reduce<Record<string, number>>((result, item) => {
     const amount = Number(item.totalPrice) || 0;
     if (amount > 0) result[item.category || "Tanpa kategori"] = (result[item.category || "Tanpa kategori"] || 0) + amount;
@@ -25,9 +31,21 @@ export const SpendingPieChart: React.FC<{ expenses: ExpenseItem[] }> = ({ expens
 
   return (
     <section className="glass-panel rounded-2xl p-4 sm:p-5" aria-labelledby="spending-chart-title">
-      <div className="mb-4">
-        <h3 id="spending-chart-title" className="text-base sm:text-lg font-bold text-white">Komposisi Pengeluaran</h3>
-        <p className="text-sm text-slate-400">Bagian tiap kategori dari total transaksi tersimpan</p>
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 id="spending-chart-title" className="text-base sm:text-lg font-bold text-white">Komposisi Pengeluaran</h3>
+          <p className="text-sm text-slate-400">Bagian tiap kategori dari total transaksi tersimpan</p>
+        </div>
+        {onOpenBudgetBreakdown && (
+          <button
+            type="button"
+            onClick={onOpenBudgetBreakdown}
+            className="inline-flex items-center justify-center gap-1.5 self-start rounded-xl border border-indigo-500/35 bg-indigo-500/15 px-3 py-2 text-xs font-semibold text-indigo-200 transition-colors hover:bg-indigo-500/25 hover:text-white cursor-pointer"
+          >
+            <Layers className="h-3.5 w-3.5 text-indigo-300" />
+            Rincian Budget per Kategori →
+          </button>
+        )}
       </div>
       {rows.length === 0 ? (
         <p className="rounded-xl border border-dashed border-slate-600 p-5 text-center text-sm text-slate-300">

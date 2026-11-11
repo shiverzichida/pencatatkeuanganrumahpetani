@@ -10,6 +10,7 @@ import { LaborWeeklyRecapModal } from "@/components/LaborWeeklyRecapModal";
 import { ReceiptModal } from "@/components/ReceiptModal";
 import { CategoriesModal } from "@/components/CategoriesModal";
 import { SpendingPieChart } from "@/components/SpendingPieChart";
+import { BudgetBreakdownModal } from "@/components/BudgetBreakdownModal";
 import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES, CATEGORIES } from "@/types/expense";
 import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered, CheckCircle2, Hammer, ClipboardList, Sun, Moon, Tags } from "lucide-react";
 
@@ -27,6 +28,7 @@ export default function HomePage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isCalcOpen, setIsCalcOpen] = useState<boolean>(false);
   const [isLaborRecapOpen, setIsLaborRecapOpen] = useState<boolean>(false);
+  const [isBudgetBreakdownOpen, setIsBudgetBreakdownOpen] = useState<boolean>(false);
   const [recapReceiptItem, setRecapReceiptItem] = useState<ExpenseItem | null>(null);
   const [prefillData, setPrefillData] = useState<{
     category?: string;
@@ -584,9 +586,12 @@ export default function HomePage() {
             <BudgetSummary
               expenses={expenses}
               budgets={budgets}
-              onOpenLaborRecap={() => setIsLaborRecapOpen(true)}
+
             />
-            <SpendingPieChart expenses={expenses} />
+            <SpendingPieChart
+              expenses={expenses}
+              onOpenBudgetBreakdown={() => setIsBudgetBreakdownOpen(true)}
+            />
           </div>
 
           {/* Right Column: Expense Form */}
@@ -696,6 +701,14 @@ export default function HomePage() {
         onClose={() => setIsCategoriesOpen(false)}
         onAdd={handleAddCategory}
         onRemove={handleRemoveCategory}
+      />
+
+      <BudgetBreakdownModal
+        isOpen={isBudgetBreakdownOpen}
+        onClose={() => setIsBudgetBreakdownOpen(false)}
+        expenses={expenses}
+        budgets={budgets}
+        onOpenLaborRecap={() => setIsLaborRecapOpen(true)}
       />
 
       {/* Rekapitulasi Pembayaran Mingguan Jasa Bangun (Spreadsheet) Modal */}
