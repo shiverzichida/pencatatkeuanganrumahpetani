@@ -288,6 +288,32 @@ function doPost(e) {
       }
     }
     
+    if (action === "edit_category") {
+      const oldCategory = contents.oldCategory ? String(contents.oldCategory).trim() : "";
+      const newCategory = contents.newCategory ? String(contents.newCategory).trim() : "";
+      if (oldCategory && newCategory) {
+        const budgetSheet = ss.getSheetByName(BUDGET_SHEET);
+        const bRows = budgetSheet.getDataRange().getValues();
+        for (let j = 1; j < bRows.length; j++) {
+          if (String(bRows[j][0]).trim().toLowerCase() === oldCategory.toLowerCase()) {
+            budgetSheet.getRange(j + 1, 1).setValue(newCategory);
+          }
+        }
+
+        const pRows = sheet.getDataRange().getValues();
+        for (let i = 1; i < pRows.length; i++) {
+          if (String(pRows[i][2]).trim().toLowerCase() === oldCategory.toLowerCase()) {
+            sheet.getRange(i + 1, 3).setValue(newCategory);
+          }
+        }
+
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success",
+          message: "Kategori berhasil diubah di Spreadsheet"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Aksi tidak dikenali" }))
       .setMimeType(ContentService.MimeType.JSON);
       

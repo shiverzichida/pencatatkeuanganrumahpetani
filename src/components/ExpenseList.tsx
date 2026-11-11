@@ -140,11 +140,11 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
             Belum ada catatan pengeluaran yang cocok.
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div>
             {sortedExpenses.map((exp) => (
               <div
                 key={exp.id}
-                className="p-3.5 sm:p-4 hover:bg-white/[0.02] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                className="p-3.5 sm:p-4 hover:bg-white/[0.02] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 group border-b border-white/10 last:border-b-0"
               >
                 <div className="space-y-1.5 flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -208,7 +208,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
                 </div>
 
                 {/* Price & Actions */}
-                <div className="flex items-center justify-between sm:justify-end gap-3 self-end sm:self-center w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                <div className="flex items-center justify-between sm:justify-end gap-3 self-end sm:self-center w-full sm:w-auto pt-1 sm:pt-0">
                   <div className="text-right">
                     <p className={`text-sm sm:text-base font-black font-mono tabular-nums tracking-tight ${
                       exp.paymentStatus === "Bon / Tempo" ? "text-amber-400" : "text-emerald-400"

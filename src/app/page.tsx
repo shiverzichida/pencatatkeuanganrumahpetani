@@ -21,6 +21,7 @@ export default function HomePage() {
   const [expenses, setExpenses] = useState<ExpenseItem[]>(INITIAL_EXPENSES);
   const [budgets, setBudgets] = useState<BudgetCategory[]>(DEFAULT_BUDGETS);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [hiddenCategories, setHiddenCategories] = useState<string[]>([]);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
@@ -57,11 +58,14 @@ export default function HomePage() {
   useEffect(() => {
     const savedTheme = localStorage.getItem("app_theme");
     const savedCategoriesRaw = localStorage.getItem("custom_categories");
+    const savedHiddenRaw = localStorage.getItem("hidden_categories");
     window.setTimeout(() => {
       if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
       try {
         const savedCategories: unknown = JSON.parse(savedCategoriesRaw || "[]");
         if (Array.isArray(savedCategories)) setCustomCategories(savedCategories.filter((value): value is string => typeof value === "string"));
+        const savedHidden: unknown = JSON.parse(savedHiddenRaw || "[]");
+        if (Array.isArray(savedHidden)) setHiddenCategories(savedHidden.filter((value): value is string => typeof value === "string"));
       } catch (error) {
         console.error("Gagal membaca kategori kustom", error);
       }
@@ -104,6 +108,7 @@ export default function HomePage() {
 
   // Gabungkan kategori bawaan, kategori kustom, serta kategori dari transaksi & budget Google Sheets (Disusun A-Z)
   const categories = useMemo(() => {
+    const hiddenSet = new Set(hiddenCategories.map((c) => c.toLocaleLowerCase("id-ID")));
     const set = new Set<string>(CATEGORIES);
     customCategories.forEach((c) => {
       if (c && c.trim()) set.add(c.trim());
@@ -114,8 +119,17 @@ export default function HomePage() {
     budgets.forEach((b) => {
       if (b.category && b.category.trim()) set.add(b.category.trim());
     });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "id-ID"));
-  }, [customCategories, expenses, budgets]);
+    return Array.from(set)
+      .filter((c) => !hiddenSet.has(c.toLocaleLowerCase("id-ID")))
+      .sort((a, b) => a.localeCompare(b, "id-ID"));
+  }, [customCategories, hiddenCategories, expenses, budgets]);
+
+  const expensesCountByCategory = useMemo(() => {
+    return expenses.reduce<Record<string, number>>((acc, item) => {
+      if (item.category) acc[item.category] = (acc[item.category] || 0) + 1;
+      return acc;
+    }, {});
+  }, [expenses]);
 
   const handleAddCategory = async (name: string) => {
     const trimmed = name.trim();
@@ -123,6 +137,11 @@ export default function HomePage() {
     const next = Array.from(new Set([...customCategories, trimmed]));
     setCustomCategories(next);
     localStorage.setItem("custom_categories", JSON.stringify(next));
+    const nextHidden = hiddenCategories.filter((c) => c.toLocaleLowerCase("id-ID") !== trimmed.toLocaleLowerCase("id-ID"));
+    if (nextHidden.length !== hiddenCategories.length) {
+      setHiddenCategories(nextHidden);
+      localStorage.setItem("hidden_categories", JSON.stringify(nextHidden));
+    }
     showToast(`✓ Kategori "${trimmed}" berhasil ditambahkan!`);
 
     if (scriptUrl) {
@@ -143,10 +162,96 @@ export default function HomePage() {
     }
   };
 
+  const handleEditCategory = async (oldName: string, newName: string) => {
+    const trimmedNew = newName.trim().replace(/\s+/g, " ");
+    if (!trimmedNew || oldName === trimmedNew) return;
+
+    const nextCustom = Array.from(
+      new Set([
+        ...customCategories.filter((c) => c !== oldName),
+        ...(CATEGORIES.includes(trimmedNew as typeof CATEGORIES[number]) ? [] : [trimmedNew]),
+      ])
+    );
+    setCustomCategories(nextCustom);
+    localStorage.setItem("custom_categories", JSON.stringify(nextCustom));
+
+    const nextHidden = Array.from(
+      new Set([
+        ...hiddenCategories.filter((c) => c.toLocaleLowerCase("id-ID") !== trimmedNew.toLocaleLowerCase("id-ID")),
+        ...(CATEGORIES.includes(oldName as typeof CATEGORIES[number]) ? [oldName] : []),
+      ])
+    );
+    setHiddenCategories(nextHidden);
+    localStorage.setItem("hidden_categories", JSON.stringify(nextHidden));
+
+    const nextBudgets = budgets.map((b) =>
+      b.category === oldName ? { ...b, category: trimmedNew } : b
+    );
+    setBudgets(nextBudgets);
+    localStorage.setItem("local_budgets", JSON.stringify(nextBudgets));
+
+    const affectedExpenses = expenses.filter((e) => e.category === oldName);
+    const nextExpenses = expenses.map((e) =>
+      e.category === oldName ? { ...e, category: trimmedNew } : e
+    );
+    setExpenses(nextExpenses);
+    localStorage.setItem("local_expenses", JSON.stringify(nextExpenses));
+
+    if (editingExpense && editingExpense.category === oldName) {
+      setEditingExpense({ ...editingExpense, category: trimmedNew });
+    }
+
+    showToast(`✓ Kategori "${oldName}" diubah menjadi "${trimmedNew}"!`);
+
+    if (scriptUrl) {
+      try {
+        const res = await fetch(scriptUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "edit_category",
+            oldCategory: oldName,
+            newCategory: trimmedNew,
+          }),
+        });
+        const json = await res.json().catch(() => null);
+        if (!json || json.status !== "success") {
+          await Promise.all(
+            affectedExpenses.map((item) => {
+              const updatedItem = { ...item, category: trimmedNew };
+              const cloudPayload = {
+                ...updatedItem,
+                notes:
+                  updatedItem.paymentStatus === "Bon / Tempo"
+                    ? `[BON] ${updatedItem.notes || ""}`.trim()
+                    : (updatedItem.notes || "").replace(/\[bon\]\s*/gi, "").trim(),
+              };
+              return fetch(scriptUrl, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ action: "edit", data: cloudPayload }),
+              });
+            })
+          );
+        }
+      } catch (err) {
+        console.error("Gagal sinkronkan perubahan kategori ke Google Spreadsheet", err);
+      }
+    }
+  };
+
   const handleRemoveCategory = async (name: string) => {
     const next = customCategories.filter((c) => c !== name);
     setCustomCategories(next);
     localStorage.setItem("custom_categories", JSON.stringify(next));
+    const nextHidden = Array.from(new Set([...hiddenCategories, name]));
+    setHiddenCategories(nextHidden);
+    localStorage.setItem("hidden_categories", JSON.stringify(nextHidden));
+
+    const nextBudgets = budgets.filter((b) => b.category !== name);
+    setBudgets(nextBudgets);
+    localStorage.setItem("local_budgets", JSON.stringify(nextBudgets));
+
     showToast(`Kategori "${name}" dihapus.`, "info");
 
     if (scriptUrl) {
@@ -697,7 +802,8 @@ export default function HomePage() {
       <CategoriesModal
         isOpen={isCategoriesOpen}
         categories={categories}
-        customCategories={customCategories}
+        onEdit={handleEditCategory}
+        expensesCountByCategory={expensesCountByCategory}
         onClose={() => setIsCategoriesOpen(false)}
         onAdd={handleAddCategory}
         onRemove={handleRemoveCategory}
