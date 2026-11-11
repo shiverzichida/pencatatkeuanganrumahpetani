@@ -11,8 +11,9 @@ import { ReceiptModal } from "@/components/ReceiptModal";
 import { CategoriesModal } from "@/components/CategoriesModal";
 import { SpendingPieChart } from "@/components/SpendingPieChart";
 import { BudgetBreakdownModal } from "@/components/BudgetBreakdownModal";
-import { ExpenseItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES, CATEGORIES } from "@/types/expense";
-import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered, CheckCircle2, Hammer, ClipboardList, Sun, Moon, Tags } from "lucide-react";
+import { IncomeModal } from "@/components/IncomeModal";
+import { ExpenseItem, IncomeItem, BudgetCategory, DEFAULT_BUDGETS, INITIAL_EXPENSES, CATEGORIES } from "@/types/expense";
+import { Home, RefreshCw, Settings, Database, FileSpreadsheet, PlusCircle, LayoutDashboard, ListOrdered, CheckCircle2, Hammer, ClipboardList, Sun, Moon, Tags, Landmark } from "lucide-react";
 
 export const DEFAULT_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwIJPWHwKL36YxZ6mPNo6gS8Rwu_mBOxT5qoB5to0l0AJV4qZLrZWoo4QmbzYxXHRuU_w/exec";
@@ -29,6 +30,8 @@ export default function HomePage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isCalcOpen, setIsCalcOpen] = useState<boolean>(false);
   const [isLaborRecapOpen, setIsLaborRecapOpen] = useState<boolean>(false);
+  const [incomes, setIncomes] = useState<IncomeItem[]>([]);
+  const [isIncomeOpen, setIsIncomeOpen] = useState<boolean>(false);
   const [isBudgetBreakdownOpen, setIsBudgetBreakdownOpen] = useState<boolean>(false);
   const [recapReceiptItem, setRecapReceiptItem] = useState<ExpenseItem | null>(null);
   const [prefillData, setPrefillData] = useState<{
@@ -72,6 +75,16 @@ export default function HomePage() {
     }, 0);
     const savedUrl = localStorage.getItem("gapps_script_url") || DEFAULT_SCRIPT_URL;
     setScriptUrl(savedUrl);
+
+    const savedIncomes = localStorage.getItem("local_incomes");
+    if (savedIncomes) {
+      try {
+        const parsedIncomes = JSON.parse(savedIncomes);
+        if (Array.isArray(parsedIncomes)) setIncomes(parsedIncomes);
+      } catch (e) {
+        console.error("Failed to parse local incomes", e);
+      }
+    }
 
     const savedBudgets = localStorage.getItem("local_budgets");
     if (savedBudgets) {
@@ -284,6 +297,10 @@ export default function HomePage() {
     try {
       const res = await fetch(url);
       const json = await res.json();
+      if (json.status === "success" && Array.isArray(json.incomes)) {
+        setIncomes(json.incomes);
+        localStorage.setItem("local_incomes", JSON.stringify(json.incomes));
+      }
       if (json.status === "success" && Array.isArray(json.data) && json.data.length > 0) {
         // Normalisasi status Bon dari tag [BON] di catatan agar tersinkronisasi antar perangkat
         const normalizedExpenses: ExpenseItem[] = json.data.map((item: any) => {
@@ -489,6 +506,98 @@ export default function HomePage() {
     showToast(`Status diubah jadi: ${nextStatus}`);
   };
 
+  const totalExpenses = useMemo(
+    () => expenses.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0),
+    [expenses]
+  );
+
+  const handleAddIncome = async (newIncData: Omit<IncomeItem, "id" | "createdAt">) => {
+    const newIncome: IncomeItem = {
+      ...newIncData,
+      id: "INC-" + new Date().getTime(),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newIncome, ...incomes];
+    setIncomes(updated);
+    localStorage.setItem("local_incomes", JSON.stringify(updated));
+    showToast("✓ Uang masuk BCA Audi berhasil disimpan!");
+
+    if (scriptUrl) {
+      setIsLoading(true);
+      try {
+        const res = await fetch(scriptUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "add_income", data: newIncome }),
+        });
+        const json = await res.json().catch(() => null);
+        if (json && json.status === "success") {
+          setSyncStatus("synced");
+        } else if (json && json.message === "Aksi tidak dikenali") {
+          showToast("Tersimpan lokal. Update Apps Script agar Uang Masuk sinkron ke Sheets.", "info");
+        }
+      } catch (err) {
+        console.error("Gagal kirim uang masuk ke Google Spreadsheet", err);
+        setSyncStatus("error");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleUpdateIncome = async (updatedInc: IncomeItem) => {
+    const updated = incomes.map((item) => (item.id === updatedInc.id ? updatedInc : item));
+    setIncomes(updated);
+    localStorage.setItem("local_incomes", JSON.stringify(updated));
+    showToast("✓ Catatan uang masuk berhasil diperbarui!");
+
+    if (scriptUrl) {
+      setIsLoading(true);
+      try {
+        const res = await fetch(scriptUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "edit_income", data: updatedInc }),
+        });
+        const json = await res.json().catch(() => null);
+        if (json && json.status === "success") {
+          setSyncStatus("synced");
+        }
+      } catch (err) {
+        console.error("Gagal update uang masuk di Google Spreadsheet", err);
+        setSyncStatus("error");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleDeleteIncome = async (id: string) => {
+    const updated = incomes.filter((item) => item.id !== id);
+    setIncomes(updated);
+    localStorage.setItem("local_incomes", JSON.stringify(updated));
+    showToast("Catatan uang masuk telah dihapus.", "info");
+
+    if (scriptUrl) {
+      setIsLoading(true);
+      try {
+        const res = await fetch(scriptUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "delete_income", id }),
+        });
+        const json = await res.json().catch(() => null);
+        if (json && json.status === "success") {
+          setSyncStatus("synced");
+        }
+      } catch (err) {
+        console.error("Gagal hapus uang masuk di Google Spreadsheet", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
   const handleSaveScriptUrl = (url: string) => {
     setScriptUrl(url);
     localStorage.setItem("gapps_script_url", url);
@@ -631,6 +740,13 @@ export default function HomePage() {
 
           <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
             <button
+              onClick={() => setIsIncomeOpen(true)}
+              className="text-xs font-bold px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-xl transition-colors border border-emerald-500/40 flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Landmark className="w-3.5 h-3.5 text-emerald-400" />
+              + Uang Masuk (BCA Audi)
+            </button>
+            <button
               onClick={() => setIsLaborRecapOpen(true)}
               className="text-xs font-bold px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl transition-colors border border-amber-500/40 flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
@@ -689,6 +805,8 @@ export default function HomePage() {
           {/* Left Column: Budget Summary */}
           <div className={`lg:col-span-6 xl:col-span-7 space-y-6 ${mobileTab !== "dashboard" ? "hidden lg:block" : ""}`}>
             <BudgetSummary
+              incomes={incomes}
+              onOpenIncomeModal={() => setIsIncomeOpen(true)}
               expenses={expenses}
               budgets={budgets}
 
@@ -807,6 +925,17 @@ export default function HomePage() {
         onClose={() => setIsCategoriesOpen(false)}
         onAdd={handleAddCategory}
         onRemove={handleRemoveCategory}
+      />
+
+      <IncomeModal
+        isOpen={isIncomeOpen}
+        onClose={() => setIsIncomeOpen(false)}
+        incomes={incomes}
+        totalExpenses={totalExpenses}
+        onAddIncome={handleAddIncome}
+        onUpdateIncome={handleUpdateIncome}
+        onDeleteIncome={handleDeleteIncome}
+        isLoading={isLoading}
       />
 
       <BudgetBreakdownModal

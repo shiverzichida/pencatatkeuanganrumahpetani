@@ -23,6 +23,16 @@ export interface ExpenseItem {
   createdAt?: string;
 }
 
+export interface IncomeItem {
+  id: string;
+  date: string;
+  account: string;
+  description: string;
+  amount: number;
+  notes?: string;
+  createdAt?: string;
+}
+
 export interface BudgetCategory {
   category: string;
   budget: number;

@@ -2,20 +2,29 @@
 
 import React from "react";
 import { formatRupiah } from "@/lib/utils";
-import { Wallet, TrendingUp, AlertTriangle, ShieldAlert, CheckCircle2 } from "lucide-react";
-import { BudgetCategory, ExpenseItem } from "@/types/expense";
+import { Wallet, TrendingUp, AlertTriangle, ShieldAlert, CheckCircle2, Landmark, PlusCircle } from "lucide-react";
+import { BudgetCategory, ExpenseItem, IncomeItem } from "@/types/expense";
 
 interface BudgetSummaryProps {
   expenses: ExpenseItem[];
   budgets: BudgetCategory[];
+  incomes?: IncomeItem[];
+  onOpenIncomeModal?: () => void;
 }
 
-export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets }) => {
+export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
+  expenses,
+  budgets,
+  incomes = [],
+  onOpenIncomeModal,
+}) => {
+  const totalIncome = incomes.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   const totalSpent = expenses.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0);
   const totalBudget = budgets.reduce((sum, b) => sum + b.budget, 0);
   const totalPessimistic = budgets.reduce((sum, b) => sum + b.pessimistic, 0);
 
   const remainingBudget = totalBudget - totalSpent;
+  const bcaAudiBalance = totalIncome - totalSpent;
   const percentageSpent = Math.min(Math.round((totalSpent / totalBudget) * 100), 100);
 
   // Early Warning Thresholds (Fitur #4)
@@ -69,6 +78,59 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({ expenses, budgets 
           </div>
         </div>
       ) : null}
+
+      {/* Kartu Saldo BCA Audi (Uang Masuk - Total Pengeluaran) */}
+      <div
+        className={`glass-panel p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative overflow-hidden ${
+          bcaAudiBalance >= 0 ? "border-emerald-500/30" : "border-rose-500/35"
+        }`}
+      >
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${
+              bcaAudiBalance >= 0
+                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                : "bg-rose-500/15 border-rose-500/30 text-rose-400"
+            }`}
+          >
+            <Landmark className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Saldo BCA Audi
+            </p>
+            <h3
+              className={`text-xl sm:text-2xl font-black tracking-tight mt-0.5 ${
+                bcaAudiBalance >= 0 ? "text-emerald-400" : "text-rose-400"
+              }`}
+            >
+              {formatRupiah(bcaAudiBalance)}
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span>
+                Uang Masuk:{" "}
+                <strong className="text-emerald-400">{formatRupiah(totalIncome)}</strong>{" "}
+                <span className="text-slate-500">({incomes.length}x)</span>
+              </span>
+              <span className="text-slate-600">•</span>
+              <span>
+                Keluar: <strong className="text-white">{formatRupiah(totalSpent)}</strong>
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {onOpenIncomeModal && (
+          <button
+            type="button"
+            onClick={onOpenIncomeModal}
+            className="self-start sm:self-center shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/35 text-xs font-bold transition-colors cursor-pointer"
+          >
+            <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
+            Uang Masuk / Riwayat
+          </button>
+        )}
+      </div>
 
       {/* 3 Main Highlight Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

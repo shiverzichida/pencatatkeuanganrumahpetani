@@ -23,6 +23,7 @@
 
 const SHEET_NAME = "Pengeluaran";
 const BUDGET_SHEET = "Budget";
+const INCOME_SHEET = "Uang Masuk";
 
 function setupSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -81,6 +82,27 @@ function setupSheet() {
     defaultBudgets.forEach(row => budgetSheet.appendRow(row));
     budgetSheet.setFrozenRows(1);
   }
+
+  // Sheet 3: Uang Masuk (BCA Audi)
+  let incomeSheet = ss.getSheetByName(INCOME_SHEET);
+  if (!incomeSheet) {
+    incomeSheet = ss.insertSheet(INCOME_SHEET);
+    const iHeaders = [
+      "ID",
+      "Tanggal",
+      "Rekening",
+      "Sumber / Keterangan",
+      "Nominal (Rp)",
+      "Catatan",
+      "Waktu Input"
+    ];
+    incomeSheet.appendRow(iHeaders);
+    const iHeader = incomeSheet.getRange(1, 1, 1, iHeaders.length);
+    iHeader.setBackground("#047857");
+    iHeader.setFontColor("#FFFFFF");
+    iHeader.setFontWeight("bold");
+    incomeSheet.setFrozenRows(1);
+  }
 }
 
 // Menangani permintaan GET (Membaca data)
@@ -90,10 +112,6 @@ function doGet(e) {
   const sheet = ss.getSheetByName(SHEET_NAME);
   const rows = sheet.getDataRange().getValues();
   
-  if (rows.length <= 1) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", data: [] }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
   
   const headers = rows[0];
   const items = [];
@@ -117,6 +135,23 @@ function doGet(e) {
     items.push(item);
   }
   
+  // Baca juga Uang Masuk (BCA Audi)
+  const incomeSheet = ss.getSheetByName(INCOME_SHEET);
+  const iRows = incomeSheet.getDataRange().getValues();
+  const incomes = [];
+  for (let k = 1; k < iRows.length; k++) {
+    const iRow = iRows[k];
+    incomes.push({
+      id: iRow[0] ? String(iRow[0]) : "INC-" + k,
+      date: iRow[1] instanceof Date ? Utilities.formatDate(iRow[1], Session.getScriptTimeZone(), "yyyy-MM-dd") : String(iRow[1]),
+      account: String(iRow[2] || "BCA Audi"),
+      description: String(iRow[3] || ""),
+      amount: Number(iRow[4]) || 0,
+      notes: String(iRow[5] || ""),
+      createdAt: String(iRow[6] || "")
+    });
+  }
+
   // Baca juga Budget
   const budgetSheet = ss.getSheetByName(BUDGET_SHEET);
   const bRows = budgetSheet.getDataRange().getValues();
@@ -132,7 +167,8 @@ function doGet(e) {
   const response = {
     status: "success",
     data: items,
-    budgets: budgets
+    budgets: budgets,
+    incomes: incomes
   };
   
   return ContentService.createTextOutput(JSON.stringify(response))
@@ -312,6 +348,77 @@ function doPost(e) {
           message: "Kategori berhasil diubah di Spreadsheet"
         })).setMimeType(ContentService.MimeType.JSON);
       }
+    }
+
+    if (action === "add_income") {
+      const inc = contents.data || {};
+      const incomeSheet = ss.getSheetByName(INCOME_SHEET);
+      const id = inc.id || "INC-" + new Date().getTime();
+      const date = inc.date || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+      const account = inc.account || "BCA Audi";
+      const description = inc.description || "";
+      const amount = Number(inc.amount) || 0;
+      const notes = inc.notes || "";
+      const createdAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+
+      incomeSheet.appendRow([id, date, account, description, amount, notes, createdAt]);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Uang masuk berhasil dicatat ke Spreadsheet",
+        id: id
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "edit_income") {
+      const inc = contents.data || {};
+      const idToEdit = inc.id;
+      const incomeSheet = ss.getSheetByName(INCOME_SHEET);
+      const iRows = incomeSheet.getDataRange().getValues();
+      let found = false;
+      for (let i = 1; i < iRows.length; i++) {
+        if (String(iRows[i][0]) === String(idToEdit)) {
+          const rowNum = i + 1;
+          const date = inc.date || iRows[i][1];
+          const account = inc.account || iRows[i][2] || "BCA Audi";
+          const description = inc.description !== undefined ? inc.description : iRows[i][3];
+          const amount = inc.amount !== undefined ? Number(inc.amount) || 0 : Number(iRows[i][4]) || 0;
+          const notes = inc.notes !== undefined ? inc.notes : iRows[i][5];
+          const updatedAt = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+          incomeSheet.getRange(rowNum, 1, 1, 7).setValues([[
+            idToEdit,
+            date,
+            account,
+            description,
+            amount,
+            notes,
+            updatedAt
+          ]]);
+          found = true;
+          break;
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: found ? "success" : "not_found",
+        message: found ? "Uang masuk berhasil diubah" : "ID uang masuk tidak ditemukan"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "delete_income") {
+      const idToDelete = contents.id;
+      const incomeSheet = ss.getSheetByName(INCOME_SHEET);
+      const iRows = incomeSheet.getDataRange().getValues();
+      let found = false;
+      for (let i = 1; i < iRows.length; i++) {
+        if (String(iRows[i][0]) === String(idToDelete)) {
+          incomeSheet.deleteRow(i + 1);
+          found = true;
+          break;
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({
+        status: found ? "success" : "not_found",
+        message: found ? "Uang masuk berhasil dihapus" : "ID uang masuk tidak ditemukan"
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Aksi tidak dikenali" }))
